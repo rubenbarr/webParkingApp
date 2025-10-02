@@ -1,0 +1,154 @@
+
+.loading-container {
+position:fixed;
+background-color: rgba(255, 255, 255, 0.61);
+display: flex;
+width: 100%;
+height: 100% ;
+justify-content: center;
+align-items: center;
+&.main {
+    background-color: rgb(22, 22, 22);
+}
+&.light {
+    background-color: rgba(170, 170, 170, 0.61);
+}
+}
+
+.loading-icon {
+    width: 50px;
+    > svg {
+        animation: 
+        rotateIcon 1.5s linear infinite
+    }
+    &.main {
+        >svg >path {
+            fill: white;
+        }
+        width: 75px;
+    }
+    &.light {
+        >svg >path {
+            fill: #111111cc;
+        }
+    }
+}
+
+
+@keyframes rotateIcon {
+    0% { transform: rotate(0)
+           scale(0.8) }    
+    50% { transform: rotate(180deg)
+        scale(1)} 
+    100% { transform: rotate(360deg)
+        scale(0.8)} 
+
+    }
+
+    .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+.main-header {
+        color: rgb(100, 100, 100);
+        font-weight: bold;
+        font-size: 25px;
+    }
+
+.primary-button {
+    background-color: #093f46;
+    padding: 5px 15px;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    width: fit-content;
+    &:hover {
+        background-color: #0b292c;
+    }
+    &:active {
+        scale: 0.90;
+    }
+}
+
+.primary-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.filter-input {
+    border: 1px solid #093f46;
+    outline: transparent;
+    width: 400px;
+    border-radius: 5px;
+    height: 40px;
+    padding: 0 10px;
+    &:focus {
+        outline: 1px solid #093f46;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .primary-button {
+        width: 100%;
+    }
+    .filter-input {
+        width: 100%;
+    }
+}
+
+.table-container {
+    overflow-y: auto;
+    overflow-x: auto;
+    max-height: calc(100vh - 350px);
+}
+
+
+
+table {
+    border-radius: 10px;
+    width: 100%;
+    border-radius: 10px;
+    th, td {
+        width: 180px;
+        min-width: 180px;
+        text-align: center;
+        height: 40px;
+    }
+    thead {
+        background-color: #f8f8f8;
+        cursor: pointer;
+    }
+    tbody > tr{
+        cursor: pointer;
+        border-bottom: 1px solid rgb(235, 235, 235);
+        &:hover {
+            background-color: #d4e9ec;
+        }
+    }
+
+}
+
+
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 20px;
+    margin: 20px 0;
+}
+
+.load-more-button {
+    cursor: pointer;
+    background-color:#093f46;
+    color: white;
+    padding: 5px;
+    transition: all 0.2s ease;
+    border-radius: 5px;
+    font-size: 14px;
+    &:active {
+        transform: scale(0.9);
+    }
+}

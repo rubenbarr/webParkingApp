@@ -1,0 +1,21 @@
+
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 20px;
+    margin: 20px 0;
+}
+
+.load-more-button {
+    cursor: pointer;
+    background-color:#093f46;
+    color: white;
+    padding: 5px;
+    transition: all 0.2s ease;
+    border-radius: 5px;
+    font-size: 14px;
+    &:active {
+        transform: scale(0.9);
+    }
+}

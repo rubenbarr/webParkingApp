@@ -1,0 +1,34 @@
+.containerAnimation {
+    transform: translateX(-200px);
+    transition: transform ease-in-out 0.5s;
+    
+    &.inPlace {
+        transform: translateX(0px);
+    }
+}
+
+.inputContainer {
+    transform: translateX(200px);
+    transition: transform ease-in-out 0.5s;
+    
+    &.inPlace {
+        transform: translateX(0px);
+    }
+    &.remove {
+        display: none;
+    }
+}
+/* login*/
+.removeLoginContainer {
+    transform: translateX(-200px);
+    transition: transform ease-in-out 0.5s;
+    &.hide {
+        transition: visibility ease-in-out 0.5s;
+        visibility: hidden;
+    }
+}
+
+.inPlace {
+    transform: translateX(0);
+    transition: transform ease-in-out 0.5s;
+}

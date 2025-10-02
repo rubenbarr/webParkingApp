@@ -1,0 +1,145 @@
+
+.content {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: space-between;
+    background-color: rgb(255, 255, 255);
+    box-shadow: 0 5px 5px 0 hsl(0, 0%, 95%);
+    align-items: center;
+    height: 55px;
+    > .header-left {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    >.header-left {
+        font-weight: bold;
+    }
+}
+.header-button {
+    display: none;
+    > button {
+        padding: 5px;
+        cursor: pointer;
+        transition: all ease 0.3s;
+        border-radius: 5px;
+        &:hover {
+            background-color: rgba(110, 110, 110, 0.555);
+        }
+    }
+}
+
+
+.content-container {
+display: flex;
+min-height: 0;
+flex-direction: row;
+position: relative;
+height: 100%;
+}
+
+.sidebar {
+    background-color: #093f46;
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    font-size: 20px;
+    color: white;
+    padding: 5px 10px;
+    gap: 10px;
+    width: 150px;
+    height: 100%;
+    transition: width 0.3s, background-color 0.4s ease;
+    &.minimize {
+        width: 60px;
+        background-color: rgb(54, 75, 78);
+        
+    .side-bar-button {
+        display: flex;
+        justify-content: center;
+    }
+    }
+    > .sidebar-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        > .header-title {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+    }
+    > .side-menu {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        > .side-top-menu, > .side-bottom-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: white;
+            > div {
+                padding: 5px 15px;
+                display: flex;
+                border-radius: 5px;
+                cursor: pointer;
+                user-select: none;
+                &:hover{
+                    background-color: rgba(255, 255, 255, 0.555);
+                }
+            }
+        }
+    }
+}
+
+
+
+.main-content {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+
+
+.menu-icon { 
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all ease 0.2s;
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    &:active {
+        scale: 0.90;
+    }
+}
+
+.side-bar-button {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media screen and (max-width: 768px) {
+    .header-button {
+        display: inline;
+    }
+    .sidebar {
+        display: none;
+
+        &.expand  {
+            display: inline;
+        }
+    }
+}

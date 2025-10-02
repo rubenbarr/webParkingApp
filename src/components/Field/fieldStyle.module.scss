@@ -1,0 +1,51 @@
+.input-field {
+    height: 40px;
+    border: 1px solid gray;
+    border-radius: 5px;
+    outline: none;
+    padding: 0 5px;
+    transition: all 0.2s ease;
+    &.button {
+        background-color: rgb(238, 238, 238);
+        cursor: pointer;
+        &:active :focus {
+            transform: scale(0.99);
+            border: 2px solid gray;
+        }
+    }
+    &.blocked {
+        background-color: rgb(233, 200, 200);
+        pointer-events: none;
+    }
+}
+
+.input-field:focus
+{
+    border: 2px solid oklch(21% 0.034 264.665);
+}
+
+
+
+.input-container {
+    display: flex;
+    flex-direction: column;
+    padding: 0 12px;
+    margin: 10px 0;
+    gap: 10px;
+}
+
+.input-label{
+    font-weight:600;
+}
+
+.labels-container {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.label-blocked {
+    font-weight: bold;
+    font-size: 14px;
+    color: rgb(255, 69, 69);
+}

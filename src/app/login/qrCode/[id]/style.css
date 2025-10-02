@@ -1,0 +1,20 @@
+.containerAnimation {
+    transform: translateX(-200px);
+    transition: transform ease-in-out 0.5s;
+    
+    &.inPlace {
+        transform: translateX(0px);
+    }
+}
+
+.inputContainer {
+    transform: translateX(200px);
+    transition: transform ease-in-out 0.5s;
+    
+    &.inPlace {
+        transform: translateX(0px);
+    }
+    &.remove {
+        display: none;
+    }
+}
