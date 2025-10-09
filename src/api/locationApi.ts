@@ -1,5 +1,6 @@
 
 import { fetchWithTimeout, headersDefault, GET , LOCALHOST, POST, DELETE, PATCH} from "./authApi";
+import { Response } from "./usersApi";
 
 
 export const headers = (token:string) => ({
@@ -56,7 +57,7 @@ export async function deleteLocationById(token: string, id:string) {
         return error
     }
 }
-export async function updateLocationById(token: string, id:string, data:object) {
+export async function updateLocationById(token: string, id:string, data:object):Promise<Response> {
     try {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/locations_route/updateLocation/${id}`, {
             method: PATCH,    

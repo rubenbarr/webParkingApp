@@ -317,10 +317,15 @@ export default function Page() {
         modifiedValues[k] = edit[k]
       }
     })
-    // setDetailCardLoading(true);
+    setDetailCardLoading(true);
     const req = await updateLocationById(token as string, locationId as string, modifiedValues)
     if (req) {
-      setLoadingGlobal(true)
+      setDetailCardLoading(false)
+      if(req.state) {
+        handleToast('success', 'Ubicación actualizada correctamente')
+        setInit(edit);
+        setIsEdit(false);
+      }
     }   
   };
 
