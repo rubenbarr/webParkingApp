@@ -1,5 +1,5 @@
 
-import { fetchWithTimeout, headersDefault, GET , LOCALHOST, POST, DELETE} from "./authApi";
+import { fetchWithTimeout, headersDefault, GET , LOCALHOST, POST, DELETE, PATCH} from "./authApi";
 
 
 export const headers = (token:string) => ({
@@ -50,6 +50,18 @@ export async function deleteLocationById(token: string, id:string) {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/locations_route/deleteLocation/${id}`, {
             method: DELETE,    
             headers: headers(token),
+        });
+        return req;
+    } catch (error) {
+        return error
+    }
+}
+export async function updateLocationById(token: string, id:string, data:object) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/locations_route/updateLocation/${id}`, {
+            method: PATCH,    
+            headers: headers(token),
+            body: JSON.stringify(data)
         });
         return req;
     } catch (error) {

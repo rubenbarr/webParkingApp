@@ -12,14 +12,13 @@ import { toast, ToastContainer } from "react-toastify";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
 
-
 import "./styles/pagestyles.css";
 
 type TokenType = {
   token: string;
   user: string;
-  qrCode: string
-}
+  qrCode: string;
+};
 
 interface LoginReq {
   data: TokenType;
@@ -28,7 +27,6 @@ interface LoginReq {
 }
 
 export default function LoginPage() {
-
   const { login, setIslogged } = useAuth();
   const dispatch = useDispatch();
   const router = useRouter();
@@ -67,35 +65,39 @@ export default function LoginPage() {
     }
   }, [initTimer, timeLeft]);
 
-
   const validatecode = async () => {
     try {
       setIsloading(true);
-      const req = await validateAuthenticatorCode(email, authCode) as LoginReq;
+      const req = (await validateAuthenticatorCode(
+        email,
+        authCode
+      )) as LoginReq;
       if (!req.state) {
-         toast.error(req.message, { closeButton: true, autoClose: 4000 });
+        toast.error(req.message, { closeButton: true, autoClose: 4000 });
       } else {
-        if(req.data.token) {
-            toast.success("Bienvenido", {
+        if (req.data.token) {
+          toast.success("Bienvenido", {
             isLoading: false,
             closeButton: true,
             autoClose: 4000,
           });
-          login(req.data.user, req.data.token)
+          login(req.data.user, req.data.token);
           setIslogged(true);
-          router.replace("/dashboard")
+          router.replace("/dashboard");
         }
       }
     } catch (error) {
-      toast.error('hubo un error, intente nuevamente o más tarde', { closeButton: true, autoClose: 4000 });
+      toast.error("hubo un error, intente nuevamente o más tarde", {
+        closeButton: true,
+        autoClose: 4000,
+      });
     } finally {
-      setIsloading(false)
+      setIsloading(false);
     }
-  }
+  };
 
   const handleLogin = async () => {
     try {
-      
       setIsloading(true);
       const req = (await loginService(email, password)) as LoginReq;
       if (req) {
@@ -110,7 +112,7 @@ export default function LoginPage() {
             autoClose: 4000,
           });
           if (req.message === "isGlobal") {
-            login( req.data.user, req.data.token)
+            login(req.data.user, req.data.token);
             router.replace("/dashboard");
           } else if (req.message == "") {
             setIsAuthenticated(false);
@@ -234,7 +236,7 @@ export default function LoginPage() {
 
   const loadingComponent = () => {
     return (
-      <div className='loading-container z-10'>
+      <div className="loading-container z-10">
         <div className="loading-icon">
           <LoadingIcon width="100%" height="100%" />
         </div>
@@ -243,7 +245,7 @@ export default function LoginPage() {
   };
 
   const regresarQr = () => {
-    if (!isAuthenticated){
+    if (!isAuthenticated) {
       setInitTimer(true);
     }
     const inputClasess = inputContainerAnimation.trim().split(" ");
@@ -324,7 +326,7 @@ export default function LoginPage() {
           onClick={regresarQr}
           className="text-blue-600 visited:text-purple-600 cursor-pointer mb-10"
         >
-          {isAuthenticated ? "Regresar a login" :"Regresar a QR"}
+          {isAuthenticated ? "Regresar a login" : "Regresar a QR"}
         </button>
         <h1 className="font-semibold mb-4 text-center">
           Codigo de Autenticador
@@ -351,7 +353,6 @@ export default function LoginPage() {
     );
   };
 
-
   return (
     <div className="flex h-screen items-center justify-center bg-gray-800 p-5">
       <ToastContainer
@@ -373,9 +374,7 @@ export default function LoginPage() {
         <div
           className={`p-8 bg-white shadow rounded w-96 ${removeLoginContainer}`}
         >
-          <h2 className="text-gray-900 font-semibold">
-            Login para usuarios
-          </h2>
+          <h2 className="text-gray-900 font-semibold">Login para usuarios</h2>
           <div className="col-span-full">
             <label className="block text-sm/6 font-medium text-gray-900 font-semibold">
               Correo

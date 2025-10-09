@@ -10,6 +10,7 @@ import useDelayedUnmount from "@/assets/hooks/DelayedUnmount";
 import FieldComp from "../Field/FieldComp";
 import LoadingComponent from "../Loading";
 import WarningIcon from "@/assets/icons/WarningIcon";
+import { UserTemplate } from "@/app/users/page";
 
 interface DetailOptions {
   label: string;
@@ -70,12 +71,13 @@ export default function DetailCard(props: DetailProps) {
     }
   }, [props.detailCardState, shouldRender]);
 
-  useEffect(() => {
-    if (!handlingItem) return;
-    const valuesChecked = props.values[handlingItem];
-    if (!Array.isArray(valuesChecked)) return;
-    // handleItems(handlingItem, true);
-  }, [props.values, handlingItem]);
+  // useEffect(() => {
+  //   if (!handlingItem) return;
+  //   const valuesChecked = props.values[handlingItem];
+  //   if (!Array.isArray(valuesChecked)) return;
+  //   // handleItems(handlingItem, true);
+  // }, [props.values, handlingItem]);
+
 
   const resetDetailCard = () => {
     setWarningModalState(false);
@@ -93,41 +95,7 @@ export default function DetailCard(props: DetailProps) {
     setHandlingItem(itemKey);
     setOptions(props.template[itemKey].values);
     setShowOptions(!showOptions)
-    // const idsChecked: string[] = [];
-
-    // const editValues = props.values[itemKey];
-    // const initialTemplate = props.template[itemKey].values;
-    // // console.log('editValues');
-    // // console.log(editValues);
-    // // console.log('initialTemplate');
-    // // console.log(initialTemplate);
-    // if (editValues.length > 0)
-    //   editValues.forEach((i: any) => idsChecked.push(i?.id));
-
-    // if (editValues.length > 0 && initialTemplate.length > 0) {
-    //   const editValuesOptionsChecked = editValues.map((i: any) => ({
-    //     value: i.id,
-    //     label: i.name,
-    //     isChecked: true,
-    //   }));
-    //   const initialTemplateChecked = initialTemplate.map((i: any) => ({
-    //     ...i,
-    //     isChecked: idsChecked.includes(i.value),
-    //   }));
-    //   const merge = [...editValuesOptionsChecked, ...initialTemplateChecked];
-    //   const unique = Array.from(
-    //     new Map(merge.map((item) => [item.value, item])).values()
-    //   );
-    //   setOptions(unique);
-    //   return;
-    // }
-    // if (idsChecked.length === 0 && initialTemplate.length > 0) {
-    //   const currentOptions = options
-    //   if (!refresh) setShowOptions(!showOptions);
-    //   return;
-    // }
   };
-  // console.log(options);
 
   const handleSubmit = () => {
     setShowOptions(false);

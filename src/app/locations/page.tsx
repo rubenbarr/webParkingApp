@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { createLocation, deleteLocationById, getLocationById, getLocations } from "@/api/locationApi";
+import {
+  createLocation,
+  deleteLocationById,
+  getLocationById,
+  getLocations,
+  updateLocationById,
+} from "@/api/locationApi";
 import { getUsers, Response } from "@/api/usersApi";
 import DetailCard from "@/components/DetailCard/Detailcard";
 import { useAuth } from "@/context/AuthContext";
@@ -11,9 +17,9 @@ import { TrashIcon } from "lucide-react";
 import { getKioscos } from "@/api/kioscos";
 
 interface ILabelItem {
-  label: string
-  value:string,
-  isChecked?:boolean
+  label: string;
+  value: string;
+  isChecked?: boolean;
 }
 
 interface ILocation {
@@ -26,7 +32,7 @@ interface ILocation {
   createdBy?: string;
   locationId?: string;
   totalKioscos?: number;
-  serialNumber?:string
+  serialNumber?: string;
 }
 
 export default function Page() {
@@ -61,22 +67,22 @@ export default function Page() {
     kioscos: [],
     operators: [],
   };
-    
+
   const detailOptions = [
     {
       label: "Borrar",
       icon: TrashIcon,
       action: deleteLocationReq,
       requiresAuth: true,
-      warningTitle: "¿Desea borrar Usuario?",
+      warningTitle: "¿Desea borrar Ubicación?",
     },
   ];
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTitle = 'Nueva Ubicación'
-  
-  const { token, setLoadingGlobal, isLoadingGlobal, handleToast } = useAuth();
+  const initialTitle = "Nueva Ubicación";
 
+  const { token, setLoadingGlobal, isLoadingGlobal, handleToast } = useAuth();
 
   const [DetailCardCardState, setDetailCardState] = useState(false);
   const [detailCardTitle, setDetailCardTitle] = useState(initialTitle);
@@ -85,43 +91,47 @@ export default function Page() {
   const [edit, setEdit] = useState<ILocation>(initialData);
   const [canSubmit, setCanSubmit] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [isNewLocation, setIsNewLocation]= useState(false);
+  const [isNewLocation, setIsNewLocation] = useState(false);
 
   const [filterValue, setFilterValue] = useState("");
   const [loading, SetLoading] = useState(false);
   const [canLoadMore, setCanLoadmore] = useState(true);
   const [locations, setLocations] = useState<ILocation[]>([]);
+  const [filteredLocations, setFilteredLocations] = useState<ILocation[]>([]);
   const [page, setPage] = useState(1);
   const [saveTitle, setSaveTitle] = useState<string>("Guardar");
   const [detailCardLoading, setDetailCardLoading] = useState(false);
-  const [usersPage, setUsersPage]= useState(1);
-  const [kioscosPage, setKioscosPage]= useState(1);
-  const [locationId, setLocationId] = useState<string | null>(null)
-
-
-
+  const [usersPage, setUsersPage] = useState(1);
+  const [kioscosPage, setKioscosPage] = useState(1);
+  const [locationId, setLocationId] = useState<string | null>(null);
 
   const handleInputs = (key: string, value: string) => {
     return setEdit((prev) => ({ ...prev, [key]: value }));
   };
-  async function getLocationsReq(page:number) {
+  async function getLocationsReq(page: number, isDeleted:boolean = false) {
     setLoadingGlobal(true);
     const req = (await getLocations(token as string, page, 5)) as Response;
     if (req) {
       setLoadingGlobal(false);
       if (req.state) {
-        if(req?.data?.length === 0) {
-         return setCanLoadmore(false)
+        const data = req.data as ILocation[];
+        if (data.length === 0) {
+          if (isDeleted) {
+            setFilteredLocations([]);
+            setLocations([]);
+          }
+          return setCanLoadmore(false);
         }
-        if(locations.length === 0 ){
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return setLocations(req.data as any);
-        } if(page === 1 && locations.length!== 0){
-          return setLocations(req.data as any);
+        if (locations.length === 0) {
+          setFilteredLocations(data)
+          return setLocations(data);
         }
-        else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setLocations(prev => [...prev, ...req.data as any])
+        if (page === 1 && locations.length !== 0) {
+          setFilteredLocations(data)
+          return setLocations(data);
+        } else {
+          setFilteredLocations((prev) => [...prev, ...data]);
+          return setLocations((prev) => [...prev, ...data]);
         }
       } else {
         handleToast(
@@ -131,177 +141,249 @@ export default function Page() {
       }
     }
   }
-  
-    const getOperatorsReq = async() => {
-    const req = await getUsers(token as string, usersPage) as Response
 
-    if(req?.state) {
-      if (req.data.length > 0 ) {
-        const options = req.data.map((i:any) => (
-          {
-            label: i?.fullname,
-            value: i?.userId,
-          }
-        ));
-        setInitTemplate((prev:any )=> ({
+  const getOperatorsReq = async () => {
+    const req = (await getUsers(token as string, usersPage)) as Response;
+
+    if (req?.state) {
+      const data = req.data as string[];
+      if (data.length > 0) {
+        const options = data.map((i: any) => ({
+          label: i?.fullname,
+          value: i?.userId,
+        }));
+        setInitTemplate((prev: any) => ({
           ...prev,
           operators: {
             ...prev.operators,
-            values: [...options]
-          }
-        }))
+            values: [...options],
+          },
+        }));
       }
     }
-  }
+  };
 
-  const getKioscosReq = async() => {
-    const req = await getKioscos(token as string, kioscosPage, 5, true ) as Response;
-    if(req.state){
-      if(req.data.length > 0) {
-        const kioscosData = req.data.map((i:any) => ({label: i.title, value: i.kioscoId}))
-        setInitTemplate((prev:any) => ({
+  const getKioscosReq = async () => {
+    const req = (await getKioscos(
+      token as string,
+      kioscosPage,
+      5,
+      true
+    )) as Response;
+    if (req.state) {
+      if (Array.isArray(req.data) && req.data.length > 0) {
+        const kioscosData = req.data.map((i: any) => ({
+          label: i.title,
+          value: i.kioscoId,
+        }));
+        setInitTemplate((prev: any) => ({
           ...prev,
           kioscos: {
             ...prev.kioscos,
-            values: [...kioscosData as any]
-
-          }
-        }))
-
+            values: [...(kioscosData as any)],
+          },
+        }));
       }
     }
-  }
+  };
 
   const loadMore = () => {
-    const nextPage = page + 1
+    const nextPage = page + 1;
     setPage(nextPage);
     return getLocationsReq(nextPage);
   };
 
-  const fileredLocations = locations.filter(
-    (l) =>
-      l.title.toLocaleLowerCase().includes(filterValue.toLocaleLowerCase()) ||
-      l.contact.toLocaleLowerCase().includes(filterValue.toLocaleLowerCase())
-  );
 
   const getLocationData = async (locationId: string) => {
     setLoadingGlobal(true);
-    const req = await getLocationById(token as string, locationId) as Response
-    if(req){
+    const req = (await getLocationById(
+      token as string,
+      locationId
+    )) as Response;
+    if (req) {
       setLocationId(locationId);
-      if (!req.state) return handleToast('error', 'Hubo un error obteniendo información de ubicación, intente más tarde')
-        setLoadingGlobal(false)
-      if(req.data){ 
+      if (!req.state)
+        return handleToast(
+          "error",
+          "Hubo un error obteniendo información de ubicación, intente más tarde"
+        );
+      setLoadingGlobal(false);
+      if (req.data) {
         setIsNewLocation(false);
         const data = req.data as ILocation;
         setDetailCardTitle(data.title);
-          setOptionsMarked(data);
-          setInit(data)
-          setEdit(data)
-          router.push(`/locations?locationId=${data.locationId}`, {scroll:false});
-          setDetailCardState(true);
-        }
+        setOptionsMarked(data);
+        setInit(data);
+        setEdit(data);
+        router.push(`/locations?locationId=${data.locationId}`, {
+          scroll: false,
+        });
+        setDetailCardState(true);
+      }
     }
   };
 
-  const setOptionsMarked = (data: ILocation | string[]) => {
-    const kioscoData = data.kioscos.map((i:any) => ({  label: i.name,  value: i.id, isChecked: true }))
-    const InitoperatorsTemplate = data.operators.map((i:any) => ({label: i.name, value: i.id, isChecked: true }));
+  const setOptionsMarked = (data: ILocation) => {
+    const kioscoData = data.kioscos.map((i: any) => ({
+      label: i.name,
+      value: i.id,
+      isChecked: true,
+    }));
+    const InitoperatorsTemplate = data.operators.map((i: any) => ({
+      label: i.name,
+      value: i.id,
+      isChecked: true,
+    }));
 
     const kioscoIds = [] as string[];
     const operatorsIds = [] as string[];
 
-    data.kioscos.map((i:any) => kioscoIds.push(i.id));
-    data.operators.map((i:any) => operatorsIds.push(i.id));
-    
-    const InitTemplatekiosco = initTemplate.kioscos.values.map((i:ILabelItem) => ({...i, isChecked: kioscoIds.includes(i.value) }));
-    const InitTemplateOperators = initTemplate.operators.values.map((i:ILabelItem) => ({...i,isChecked: operatorsIds.includes(i.value) }));
+    data.kioscos.map((i: any) => kioscoIds.push(i.id));
+    data.operators.map((i: any) => operatorsIds.push(i.id));
 
-    const initMergeKioscos = [...kioscoData, ...InitTemplatekiosco]
-    const initMergeOperators = [...InitoperatorsTemplate, ...InitTemplateOperators]
+    const InitTemplatekiosco = initTemplate.kioscos.values.map(
+      (i: ILabelItem) => ({ ...i, isChecked: kioscoIds.includes(i.value) })
+    );
+    const InitTemplateOperators = initTemplate.operators.values.map(
+      (i: ILabelItem) => ({ ...i, isChecked: operatorsIds.includes(i.value) })
+    );
 
-    const uniqueKioscos = Array.from(new Map(initMergeKioscos.map((item) => [item.value, item] )).values() );
-    const uniqueOperators = Array.from(new Map(initMergeOperators.map((item) => [item.value, item] )).values() );
-    setInitTemplate(prev => ({...prev, kioscos: {...prev.kioscos, values: uniqueKioscos }}));
-    setInitTemplate(prev => ({...prev, operators: {...prev.operators, values: uniqueOperators }}));
-  
-  }
+    const initMergeKioscos = [...kioscoData, ...InitTemplatekiosco];
+    const initMergeOperators = [
+      ...InitoperatorsTemplate,
+      ...InitTemplateOperators,
+    ];
 
-
+    const uniqueKioscos = Array.from(
+      new Map(initMergeKioscos.map((item) => [item.value, item])).values()
+    );
+    const uniqueOperators = Array.from(
+      new Map(initMergeOperators.map((item) => [item.value, item])).values()
+    );
+    setInitTemplate((prev) => ({
+      ...prev,
+      kioscos: { ...prev.kioscos, values: uniqueKioscos },
+    }));
+    setInitTemplate((prev) => ({
+      ...prev,
+      operators: { ...prev.operators, values: uniqueOperators },
+    }));
+  };
 
   const hideDetailCard = () => {
-    setDetailCardState(!DetailCardCardState);
+    setDetailCardState(false);
     router.push("/locations", { scroll: false });
   };
 
-
-  const handleNewLocation = async() => {
-    router.push('/locations?isNew=true', {scroll:false})
+  const handleNewLocation = async () => {
+    router.push("/locations?isNew=true", { scroll: false });
     setDetailCardState(true);
     setIsNewLocation(true);
     setInit(initialData);
     setEdit(initialData);
-    setDetailCardTitle(initialTitle)
+    setDetailCardTitle(initialTitle);
     await getKioscosReq();
     await getOperatorsReq();
-
-    
   };
   const handlecanSubmit = () => {
     return Object.keys(edit).every((item) => {
       const val = edit[item as keyof ILocation];
       if (Array.isArray(val)) {
-        if(item === 'kioscos') return true
+        if (item === "kioscos") return true;
         return val.length > 0;
       }
       return val !== "";
     });
   };
 
-  const updateLocation = () => {
-    // setLoadingGlobal(true);
-    const dataTransformed = Object.keys(edit).forEach(i => {
-      const val1 = edit[i as keyof ILocation]
-      const val2 = init[i as keyof ILocation]
-      if(Array.isArray(val1)){
-        if (true) return
+  const updateLocation = async() => {
+    const modifiedValues: Partial<ILocation> = {};
+    Object.keys(edit).forEach((key) => {
+      const k = key as keyof ILocation;
+      if(Array.isArray(edit[k])) {
+        const initArrayValues =  init[k] as string[];
+        const editArrayValues = edit[k] as string[];
+        if (initArrayValues.length !== editArrayValues.length) {
+          modifiedValues[k] = editArrayValues;
+        }else {
+          editArrayValues.forEach( i => {
+            if (!initArrayValues.includes(i)) {
+              
+            }
+          })
+        }
+      }
+      if (init[k] !== edit[k]) {
+        modifiedValues[k] = edit[k]
       }
     })
-  }
+    // setDetailCardLoading(true);
+    const req = await updateLocationById(token as string, locationId as string, modifiedValues)
+    if (req) {
+      setLoadingGlobal(true)
+    }
+   
+  };
 
-  const handleSubmit = async() => {
-    if(!isNewLocation) {
-      return updateLocation();
+  const transformData = () => {
+    const kioscos = [] as any;
+    const operators = [] as any;
+    if (edit.kioscos.length > 0)
+      edit.kioscos.forEach((i: any) => kioscos.push(i?.id));
+    if (edit.operators.length > 0)
+      edit.operators.forEach((i: any) => operators.push(i?.id));
+
+    const copy = {
+      ...edit,
+      kioscos,
+      operators,
+    };
+    return copy;
+  };
+  const handleSubmit = async () => {
+    if (!isNewLocation) {
+      return await updateLocation();
     }
     setDetailCardLoading(true);
-    const req = await createLocation(token as string, edit) as Response;
-    if(req){
+    const transformedData = transformData();
+    const req = (await createLocation(
+      token as string,
+      transformedData
+    )) as Response;
+    if (req) {
       setDetailCardLoading(false);
       if (req.state) {
-        router.replace(`/locations?locationId=${req.data}`, {scroll:false})
-        handleToast('success', 'Ubicaciónc creda correctamente');
-        await getLocationsReq(page)
+        router.replace(`/locations?locationId=${req.data}`, { scroll: false });
+        handleToast("success", "Ubicaciónc creda correctamente");
+        await getLocationsReq(page);
         setInit(edit);
+        setIsNewLocation(false);
+        setDetailCardTitle(edit.title);
+        setIsEdit(false);
       } else {
-        handleToast('error', req.message);
+        handleToast("error", req.message);
       }
     }
-  }
+  };
 
-
-
-  async function deleteLocationReq(){
+  async function deleteLocationReq() {
     setDetailCardLoading(true);
-    const req = await deleteLocationById(token as string, locationId as string) as Response;
-    if(req) {
+    const req = (await deleteLocationById(
+      token as string,
+      locationId as string
+    )) as Response;
+    if (req) {
       setDetailCardLoading(false);
-      if(req.state) {
+      if (req.state) {
         setDetailCardState(false);
-        router.push('/locations')
-        handleToast('success', 'Ubicación eliminada correctamente')
-        getLocationsReq(page);
+        router.push("/locations");
+        handleToast("success", "Ubicación eliminada correctamente");
+        getLocationsReq(page, true);
       } else {
-        handleToast('error', 'No fue posible borrar ubicación, intente más tarde')
+        handleToast(
+          "error",
+          "No fue posible borrar ubicación, intente más tarde"
+        );
       }
     }
   }
@@ -310,34 +392,48 @@ export default function Page() {
     key: string,
     value: string | number,
     wasChecked: boolean = false,
-    label:string
+    label: string
   ) => {
-    const currentValuesChecked:any = [];
+    const currentValuesChecked: any = [];
     const editIds = edit[key as keyof ILocation] as string[];
 
-    if(Array.isArray(editIds)) editIds.map((i:any) => currentValuesChecked.push(i.id));
-    const currentTemplateValues = initTemplate[key].values.filter(i => i.value === value)[0] as ILabelItem;
+    if (Array.isArray(editIds))
+      editIds.map((i: any) => currentValuesChecked.push(i.id));
+    const currentTemplateValues = initTemplate[key].values.filter(
+      (i) => i.value === value
+    )[0] as ILabelItem;
 
-    if(wasChecked){
-      if(!currentValuesChecked.includes(value)){
-        const newData = { id: value, name: label } 
-        setEdit(prev => ({...prev, [key]: [...prev[key], newData ]  }))
+    if (wasChecked) {
+      if (!currentValuesChecked.includes(value)) {
+        const newData = { id: value, name: label };
+        setEdit((prev) => ({ ...prev, [key]: [...prev[key], newData] }));
         currentTemplateValues.isChecked = true;
-        const currentValues = [...initTemplate[key].values ].filter(i => i.value !== value);
-        const merge = [...currentValues, currentTemplateValues]
-        setInitTemplate(prev =>  ({...prev, [key]: {...prev[key], values: merge}}));
+        const currentValues = [...initTemplate[key].values].filter(
+          (i) => i.value !== value
+        );
+        const merge = [...currentValues, currentTemplateValues];
+        setInitTemplate((prev) => ({
+          ...prev,
+          [key]: { ...prev[key], values: merge },
+        }));
       }
     } else {
-      if(currentValuesChecked.includes(value)){
-        const unckechValue = [...initTemplate[key].values ].filter(i => i.value === value)[0] as ILabelItem;
-        const remainingValues = [...initTemplate[key].values ].filter(i => i.value !== value) as ILabelItem[];
+      if (currentValuesChecked.includes(value)) {
+        const unckechValue = [...initTemplate[key].values].filter(
+          (i) => i.value === value
+        )[0] as ILabelItem;
+        const remainingValues = [...initTemplate[key].values].filter(
+          (i) => i.value !== value
+        ) as ILabelItem[];
         unckechValue.isChecked = false;
-        const merge = [...remainingValues, unckechValue]
-        const filterData = editIds.filter(i => i.id !== value);
-        setEdit(prev => ({...prev, [key]: filterData }))
+        const merge = [...remainingValues, unckechValue];
+        const filterData = editIds.filter((i) => i.id !== value);
+        setEdit((prev) => ({ ...prev, [key]: filterData }));
 
-        setInitTemplate(prev =>  ({...prev, [key]: {...prev[key], values: merge}}));
-
+        setInitTemplate((prev) => ({
+          ...prev,
+          [key]: { ...prev[key], values: merge },
+        }));
       }
     }
   };
@@ -352,26 +448,36 @@ export default function Page() {
           return true;
         }
         if (val2.length > 0 && val1.length > 0) {
-          const val1Ids = Array.from(val1.map(i => i.id));
-          const val2Ids = Array.from(val2.map(i => i.id));
-        const different = val1Ids.some(id => !val2Ids.includes(id)) || 
-                          val2Ids.some(id => !val1Ids.includes(id));
-        return different;
-
+          const val1Ids = Array.from(val1.map((i) => i.id));
+          const val2Ids = Array.from(val2.map((i) => i.id));
+          const different =
+            val1Ids.some((id) => !val2Ids.includes(id)) ||
+            val2Ids.some((id) => !val1Ids.includes(id));
+          return different;
         }
       }
       return val1 !== val2;
     });
   };
 
+  const handlefilter = (value:string) => {
+    setFilterValue(value)
+      const fileredLocations = locations.filter(
+    (l) =>
+      l.title.toLocaleLowerCase().includes(value.toLocaleLowerCase()) ||
+      l.contact.toLocaleLowerCase().includes(value.toLocaleLowerCase())
+  );
+  setFilteredLocations(fileredLocations)
+  }
+
   useEffect(() => {
     getLocationsReq(page);
     getOperatorsReq();
     getKioscosReq();
-    const newUser = searchParams.get('newUser')
-    const locationId = searchParams.get('locationId')
-    if(newUser) return setIsNewLocation(true);
-    if(locationId){
+    const newUser = searchParams.get("newUser");
+    const locationId = searchParams.get("locationId");
+    if (newUser) return setIsNewLocation(true);
+    if (locationId) {
       setIsNewLocation(false);
       getLocationData(locationId);
     }
@@ -379,7 +485,7 @@ export default function Page() {
 
   useEffect(() => {
     setCanSubmit(handlecanSubmit());
-    setIsEdit(wasEdited())
+    setIsEdit(wasEdited());
   }, [edit]);
 
   return (
@@ -412,7 +518,7 @@ export default function Page() {
             placeholder="Buscar Ubicacion..."
             className="filter-input"
             value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
+            onChange={(e) => handlefilter(e.target.value)}
           />
         </div>
         <div className="table-container">
@@ -429,8 +535,8 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {fileredLocations.length > 0 ? (
-                fileredLocations.map((location: ILocation) => (
+              {filteredLocations.length > 0 ? (
+                filteredLocations.map((location: ILocation) => (
                   <tr
                     key={location.locationId}
                     className=""
@@ -449,8 +555,8 @@ export default function Page() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="">
-                    No se encontraron usuarios
+                  <td colSpan={7} className="">
+                    No se encontraron ubicaciones
                   </td>
                 </tr>
               )}
