@@ -65,6 +65,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setMinimize(true)
   };
 
+  const handleLogout  = () => {
+    logout()
+    router.replace('login')
+  }
   if (loadingContext || validating) return <LoadingComponent />;
   if (!Logged) return null;
 
@@ -130,7 +134,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <div className={style["side-bottom-menu"]}>
                 <div>Ajustes</div>
-                <div>Salir</div>
+                <div onClick={handleLogout}>Salir</div>
               </div>
             </nav>
           )}

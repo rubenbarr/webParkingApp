@@ -30,12 +30,15 @@ export default function Page() {
         }
         setIsLoading(true);
         const req = await validateToken(token as string) as RequestType;
-        if (req) setIsLoading(false);
-        if (req.state){
+        console.log(req)
+        if (req) {
+          setIsLoading(false);
+          if (req.state){
           router.replace("/dashboard")
-        } else 
-        {
+          } else 
+          {
           router.replace("/login")
+          }
         }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
@@ -45,7 +48,6 @@ export default function Page() {
         router.replace("/login")
       } finally{
         setIsLoading(false);
-        router.replace("/login")
       }
     }
     if(token){
