@@ -321,8 +321,7 @@ export default function Page() {
     const req = await updateLocationById(token as string, locationId as string, modifiedValues)
     if (req) {
       setLoadingGlobal(true)
-    }
-   
+    }   
   };
 
   const transformData = () => {
