@@ -271,64 +271,50 @@ export default function Users() {
   }
 
   const handleListValues = (
-    k: string,
+    key: string,
     value: string | number,
     wasChecked: boolean = false,
     label: string
   ) => {
     const currentValuesChecked: any = [];
-    const editIds = edit[k as keyof UserTemplate] as Location[];
-    const key = k as keyof UserTemplate;
+    const editIds = edit[key as keyof ILocation] as string[];
 
     if (Array.isArray(editIds))
       editIds.map((i: any) => currentValuesChecked.push(i.id));
-    const currentValues = initTemplate[k as keyof ITemplate];
-    const currentTemplateValues =
-      "values" in currentValues &&
-      (currentValues.values.filter((i) => i?.value === value)[0] as Ivalues);
+    const currentTemplateValues = initTemplate[key].values.filter(
+      (i) => i.value === value
+    )[0] as ILabelItem;
 
     if (wasChecked) {
       if (!currentValuesChecked.includes(value)) {
         const newData = { id: value, name: label };
-
-        setEdit((prev) => ({
-          ...prev,
-          [key]: [...(prev[key] || []), newData],
-        }));
-
-        if (currentTemplateValues && currentTemplateValues.isChecked) {
-          currentTemplateValues.isChecked = true;
-        }
-
-        const currentValues = [
-          ...initTemplate[k as keyof Pick<ITemplate, "location">].values,
-        ].filter((i) => i.value !== value);
-
+        setEdit((prev) => ({ ...prev, [key]: [...prev[key], newData] }));
+        currentTemplateValues.isChecked = true;
+        const currentValues = [...initTemplate[key].values].filter(
+          (i) => i.value !== value
+        );
         const merge = [...currentValues, currentTemplateValues];
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: { ...prev[key as keyof ITemplate], values: merge },
+          [key]: { ...prev[key], values: merge },
         }));
       }
     } else {
       if (currentValuesChecked.includes(value)) {
-        const unckechValue = [
-          ...initTemplate[key as keyof Pick<ITemplate, "location">].values,
-        ].filter((i) => i.value === value)[0];
-        const remainingValues = [
-          ...initTemplate[key as keyof Pick<ITemplate, "location">].values,
-        ].filter((i) => i.value !== value);
+        const unckechValue = [...initTemplate[key].values].filter(
+          (i) => i.value === value
+        )[0] as ILabelItem;
+        const remainingValues = [...initTemplate[key].values].filter(
+          (i) => i.value !== value
+        ) as ILabelItem[];
         unckechValue.isChecked = false;
         const merge = [...remainingValues, unckechValue];
-        const filterData = editIds.filter((i) => i?.id !== value);
+        const filterData = editIds.filter((i) => i.id !== value);
         setEdit((prev) => ({ ...prev, [key]: filterData }));
 
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: {
-            ...prev[key as keyof Pick<ITemplate, "location">],
-            values: merge,
-          },
+          [key]: { ...prev[key], values: merge },
         }));
       }
     }
