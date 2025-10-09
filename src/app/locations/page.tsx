@@ -21,6 +21,10 @@ interface ILabelItem {
   value: string;
   isChecked?: boolean;
 }
+interface item {
+  id:string,
+  name:string
+}
 
 interface ILocation {
   title: string;
@@ -318,14 +322,16 @@ export default function Page() {
       }
     })
     setDetailCardLoading(true);
-    const req = await updateLocationById(token as string, locationId as string, modifiedValues)
+    const transformedData = transformDataToUpdate(modifiedValues) as Partial <ILocation>;
+    const req = await updateLocationById(token as string, locationId as string, transformedData)
     if (req) {
-      setDetailCardLoading(false)
+    setDetailCardLoading(false)
       if(req.state) {
         handleToast('success', 'Ubicación actualizada correctamente')
         setInit(edit);
         setIsEdit(false);
-      }
+        getLocationsReq(page);
+      } else handleToast('error', 'Hubo un error actualizando, intente nuevamente o más tarde')
     }   
   };
 
@@ -344,6 +350,26 @@ export default function Page() {
     };
     return copy;
   };
+  const transformDataToUpdate = (data: ILocation) => {
+    const copy = {...data};
+
+    if (data?.operators) {
+      if (data.operators.length > 0 ) {
+        const ids = []
+        data.operators.forEach((i) => {ids.push(i.id) })
+        copy.operators = ids;
+      }
+    }
+    if (data?.kioscos) {
+      if (data.kioscos.length > 0 ) {
+        const ids = []
+        data.kioscos.forEach((i) => {ids.push(i.id) })
+        copy.kioscos = ids;
+      }
+    }
+    console.log(copy);
+    return copy
+  }
   const handleSubmit = async () => {
     if (!isNewLocation) {
       return await updateLocation();
