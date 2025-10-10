@@ -128,7 +128,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <div onClick={() => handleSideMenu("/locations")} className="">
                   Ubicaciones
                 </div>
-                <div onClick={() => handleSideMenu("/kiosk")} className="">
+                <div onClick={() => handleSideMenu("/kioscos")} className="">
                   Kioscos
                 </div>
               </div>
