@@ -508,7 +508,7 @@ export default function Page() {
                 <th className="">Kiosco</th>
                 <th className="">Numero de serie</th>
                 <th className="">Contacto</th>
-                <th className="">Ubición</th>
+                <th className="">Ubicaión</th>
                 <th className="">total de operadores</th>
               </tr>
             </thead>
