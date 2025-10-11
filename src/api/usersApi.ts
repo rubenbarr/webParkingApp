@@ -11,14 +11,14 @@ export interface Response {
     total?: number
 }
 
-export async function getUsers(token: string, page: number = 1, limit: number = 5) {
+export async function getUsers(token: string, page: number = 1, limit: number = 5, onlyUperators:boolean = false) {
     try {
-
+        const onlyOperatorsQ = onlyUperators ? "&onlyOperators=true" : ""
         const headers = {
             ...headersDefault,
             Authorization: `Bearer ${token} `
         }
-        const request = await fetchWithTimeout(`${LOCALHOST}/api/user_routes/getUsers?page=${page}&limit=${limit}`,
+        const request = await fetchWithTimeout(`${LOCALHOST}/api/user_routes/getUsers?page=${page}&limit=${limit}${onlyOperatorsQ}`,
             {
                 method: GET,
                 headers

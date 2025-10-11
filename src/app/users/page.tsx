@@ -110,6 +110,7 @@ export default function Users() {
       type: "datalist",
       label: "Ubicaciones",
       values: [],
+      disable:false
     },
   };
 
@@ -232,6 +233,17 @@ export default function Users() {
     setInit(newData as UserTemplate);
     setEdit(newData as UserTemplate);
   }
+  function transformUserToHandle(data: UserTemplate) {
+    const locations: string[] = [];
+    data.location?.forEach((i) => {
+      locations.push(i.id);
+    });
+    const newData = {
+      ...data,
+      location: locations
+    };
+    return newData;
+  }
   const getUserFromList = async (userId: string) => {
     setUserId(userId);
     setLoadingGlobal(true);
@@ -344,13 +356,17 @@ export default function Users() {
 
   const handleCanSubmit = () => {
     const values = Object.keys(edit);
+    if (edit.type === 'global-admin'){
+      setInitTemplate(prev => ({...prev, location: {...prev.location, disable: true} }))
+    } else setInitTemplate(prev => ({...prev, location: {...prev.location, disable: false} }))
     return values.every((v) => {
-      if (Array.isArray(edit[v as keyof UserTemplate])) {
-        return edit[v as keyof UserTemplate]?.length !== 0;
-      }
+      // if (edit.type !== 'global-admin' && Array.isArray(edit[v as keyof UserTemplate])) {
+      //   return edit[v as keyof UserTemplate]?.length !== 0;
+      // }
       return edit[v as keyof UserTemplate] !== "";
     });
   };
+
   const transformData = (data: UserTemplate) => {
     const newLocations = [] as string[];
     if (data.location && data.location.length > 0) {
@@ -383,15 +399,13 @@ export default function Users() {
     )) as Response;
     setDetailCardLoading(false);
     if (req.state) {
-      setDetailCardTitle(edit.fullname);
       handleToast("success", "Usuario actualizado correctamente");
-
-      await fetchData(false);
+      setDetailCardTitle(edit.fullname);
       setInit(edit);
       setCanSubmit(false);
       setIsEdit(false);
-      // const userById = users.findIndex((i) => i.userId === edit.userId);
-      // setUsers((prev) => prev.map((u, idx) => (idx === userById? temporalEdit: u) ) )
+      await fetchData(false);
+
     } else
       handleToast(
         "error",
@@ -405,7 +419,8 @@ export default function Users() {
       return;
     }
     setDetailCardLoading(true);
-    const request = (await createUser(edit, token as string)) as Response;
+    const newData = transformUserToHandle(edit);
+    const request = (await createUser(newData, token as string)) as Response;
 
     if (!request?.state) {
       handleToast(
@@ -415,6 +430,7 @@ export default function Users() {
     } else if (request.state) {
       router.push(`/users?userId=${request.data}`, { scroll: false });
       setInit(edit);
+      setIsEdit(false);
       setDetailCardTitle(edit.fullname);
       handleToast("success", "usuario creado correctamente");
       await fetchData();
@@ -464,7 +480,7 @@ export default function Users() {
           value: item.locationId,
           isChecked: false,
         }));
-        if (userLocations?.length === 0) {
+        if (userLocations?.length === 0 || !userLocations) {
           setInitTemplate((prev) => ({
             ...prev,
             location: { ...prev.location, values: locations },
@@ -521,6 +537,7 @@ export default function Users() {
       return <label>{locations[0].name}</label>;
     }
   };
+
   return (
     <>
       <DetailCard

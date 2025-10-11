@@ -6,6 +6,7 @@ import LoadingIcon from '@/assets/icons/LoadingIcon';
 import { validateToken } from '@/api/authApi';
 import { useRouter } from 'next/navigation';
 import LoadingComponent from '@/components/Loading';
+import WrapperLayout from '@/components/WrapperLayout';
 
 
 interface RequestType {
@@ -60,8 +61,12 @@ export default function Page() {
 
 
   if (isLoading || isLoading === null) {
-    return <LoadingComponent/>;
+    return  (
+        <LoadingComponent/>
+    ) 
   } else {
+    <WrapperLayout>
     <LoginPage/>
+    </WrapperLayout>
   }
 }

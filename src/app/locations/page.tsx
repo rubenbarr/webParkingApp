@@ -147,7 +147,7 @@ export default function Page() {
   }
 
   const getOperatorsReq = async () => {
-    const req = (await getUsers(token as string, usersPage)) as Response;
+    const req = (await getUsers(token as string, usersPage, 5, true)) as Response;
 
     if (req?.state) {
       const data = req.data as string[];
@@ -327,6 +327,7 @@ export default function Page() {
     if (req) {
     setDetailCardLoading(false)
       if(req.state) {
+        console.log(handleInputs)
         handleToast('success', 'Ubicación actualizada correctamente')
         setInit(edit);
         setIsEdit(false);
@@ -367,7 +368,6 @@ export default function Page() {
         copy.kioscos = ids;
       }
     }
-    console.log(copy);
     return copy
   }
   const handleSubmit = async () => {

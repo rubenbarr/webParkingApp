@@ -27,7 +27,7 @@ interface LoginReq {
 }
 
 export default function LoginPage() {
-  const { login, setIslogged } = useAuth();
+  const { login, setIslogged, handleToast } = useAuth();
   const dispatch = useDispatch();
   const router = useRouter();
   const [invalidSubmit, setInvalidSubmit] = useState(true);
@@ -103,14 +103,10 @@ export default function LoginPage() {
       if (req) {
         setIsloading(false);
         if (!req.state) {
-          toast.error(req.message, { closeButton: true, autoClose: 4000 });
+          handleToast('error', 'Credenciales Invalidas')
         } else {
           setInvalidSubmit(false);
-          toast.success("Login correcto", {
-            isLoading: false,
-            closeButton: true,
-            autoClose: 4000,
-          });
+          handleToast('success', 'Bienvenido')
           if (req.message === "isGlobal") {
             login(req.data.user, req.data.token);
             router.replace("/dashboard");
@@ -355,18 +351,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-800 p-5">
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick={true}
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
       {qrContainerInPlace && codeAndQrcontainerValidation()}
       {authenticatorContainerVisible && authenticatorInputCodeContainer()}
       {isLoading && loadingComponent()}

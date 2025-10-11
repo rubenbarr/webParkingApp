@@ -12,6 +12,7 @@ interface FieldType {
   handleOptions: (index: string) => void;
   isEditing?: boolean;
   canBeModified?: boolean;
+  disable?: boolean
 }
 
 export default function FieldComp({
@@ -24,6 +25,7 @@ export default function FieldComp({
   isEditing = false,
   canBeModified = true,
   value,
+  disable = false
 }: FieldType) {
   const returnType = () => {
     switch (type) {
@@ -46,12 +48,12 @@ export default function FieldComp({
             name={ind}
             onChange={(e) => onchange(ind, e.target.value)}
             className={cn(styles["input-field"])}
+            value={value as string}
           >
             {items.map((i) => (
               <option
                 key={i.value}
                 value={i.value}
-                selected={ i?.value ? value as boolean :  false}
               >
                 {i.label}
               </option>
@@ -61,13 +63,14 @@ export default function FieldComp({
       case "datalist":
         return (
           <button
-            className={cn([styles["input-field"]], [styles["button"]])}
+            disabled = {disable}
+            className={cn([styles["input-field"]], [styles["button"], {[styles['disabled']]: disable}])}
             onClick={() => {
               handleOptions(ind);
             }}
           >
   
-            {"seleccionados: " + value?.length}
+            {"seleccionados: " + (typeof value ==="object" && value?.length)}
           </button>
         );
 

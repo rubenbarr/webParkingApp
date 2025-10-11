@@ -71,14 +71,6 @@ export default function DetailCard(props: DetailProps) {
     }
   }, [props.detailCardState, shouldRender]);
 
-  // useEffect(() => {
-  //   if (!handlingItem) return;
-  //   const valuesChecked = props.values[handlingItem];
-  //   if (!Array.isArray(valuesChecked)) return;
-  //   // handleItems(handlingItem, true);
-  // }, [props.values, handlingItem]);
-
-
   const resetDetailCard = () => {
     setWarningModalState(false);
     setShowOptions(false);
@@ -237,6 +229,7 @@ export default function DetailCard(props: DetailProps) {
               handleOptions={handleItems}
               canBeModified={props.template[k].canBeModified}
               isEditing={!props.isNewItem}
+              disable={props.template[k]?.disable}
             />
           ))}
         </div>

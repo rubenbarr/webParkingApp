@@ -12,6 +12,13 @@
             transform: scale(0.99);
             border: 2px solid gray;
         }
+        &.disabled {
+            cursor: not-allowed;
+            background-color: rgb(190, 190, 190);
+            &:hover, &:active {
+                background-color: rgb(243, 186, 186);
+            }
+        }
     }
     &.blocked {
         background-color: rgb(233, 200, 200);

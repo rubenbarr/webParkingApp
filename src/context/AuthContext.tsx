@@ -39,12 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleToast = (toastType: string, message: string) => {
-    if (toastType === "error") {
-      toast.error(message, { closeButton: true, autoClose: 4000 });
-    }
-    if (toastType === "success") {
-      toast.success(message, { closeButton: true, autoClose: 4000 });
-    }
+    try {
+      if (toastType === "error") {
+        return toast.error(message, { closeButton: true, autoClose: 4000 });
+      }
+      if (toastType === "success") {
+        return toast.success(message, { closeButton: true, autoClose: 4000 });
+      }
+    } catch(err) {console.log(err)}
   };
   const login = (user: string, token: string) => {
     localStorage.setItem("token", token);
