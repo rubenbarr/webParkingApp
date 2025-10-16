@@ -92,7 +92,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <Image src={logo} alt="Smart Parking" width={200} />
         </div>
         <div className="">
-          {user && <span className="">{"Hola " + user}</span>}
+          {user && <span className="">{user}</span>}
         </div>
       </header>
       <div className={style["content-container"]}>

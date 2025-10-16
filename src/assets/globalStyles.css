@@ -152,3 +152,20 @@ table {
         transform: scale(0.9);
     }
 }
+.main-entity-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    background-color: rgb(250, 250, 250);
+    box-shadow: 1px 5px 5px 2px rgb(245, 245, 245);
+    border-radius: 10px;
+    padding: 5px;
+}
+
+
+@media screen and (max-width:768px) {
+    .main-entity-content {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+}

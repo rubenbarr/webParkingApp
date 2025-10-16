@@ -43,6 +43,7 @@ type DetailProps = {
   isNewItem: boolean;
   warningContent?: string;
   detailCardOptions?: DetailOptions[];
+  shouldReRenderOptions?: boolean
 };
 
 type options = {
@@ -70,6 +71,10 @@ export default function DetailCard(props: DetailProps) {
       return () => clearTimeout(t);
     }
   }, [props.detailCardState, shouldRender]);
+
+  useEffect(() => {
+    if(props.shouldReRenderOptions) setOptions(props.template[handlingItem].values);
+  },[props.values])
 
   const resetDetailCard = () => {
     setWarningModalState(false);
@@ -120,6 +125,8 @@ export default function DetailCard(props: DetailProps) {
         action();
       };
       setWarningAction(() => actionw);
+    } else {
+      return action()
     }
   };
 
@@ -260,7 +267,7 @@ export default function DetailCard(props: DetailProps) {
                       <input
                         key={item.value}
                         type="checkbox"
-                        checked={item.isChecked}
+                        checked={item?.isChecked}
                         className={cn([styles["checkbox-options"]])}
                         value={item.value}
                         onChange={(e) =>

@@ -1,40 +1,54 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
-  createLocation,
-  deleteLocationById,
-  getLocationById,
-  getkioscos,
-  updateLocationById,
+  getLocations,
 } from "@/api/locationApi";
-import { getUsers, Response } from "@/api/usersApi";
+import { Response } from "@/api/usersApi";
 import DetailCard from "@/components/DetailCard/Detailcard";
 import { useAuth } from "@/context/AuthContext";
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TrashIcon } from "lucide-react";
-import { getKioscos } from "@/api/kioscos";
+import { createKiosco, deleteKioscoById, getKioscoById, getKioscos, updateKioscoById } from "@/api/kioscos";
+import ManageIcon from "@/assets/icons/ManageIcon";
 
 interface ILabelItem {
   label: string;
   value: string;
   isChecked?: boolean;
 }
-interface item {
-  id:string,
-  name:string
+export interface item {
+  id: string;
+  name: string;
 }
 
-interface IKiosco {
-  title: string
-  contact: string;
-  kioscos: string;
-  operators: string[] | [];
+export interface IKiosco {
+  title: string;
+  contactName: string;
+  contactPhone: string;
+  location: item[];
   serialNumber?: string;
-  kioscoId:string
-  locations:string
+  kioscoId?: string;
+  online?: string;
+  active?: string;
 }
+
+interface ITemplateItem {
+  type: string;
+  label:string;
+  values?: ILabelItem []
+}
+
+interface IinitTemplate  {
+  title:  ITemplateItem
+  serialNumber: ITemplateItem
+  contactName: ITemplateItem
+  contactPhone: ITemplateItem
+  location: ITemplateItem | []
+}
+
 
 export default function Page() {
   const template = {
@@ -42,36 +56,46 @@ export default function Page() {
       type: "input",
       label: "Titulo de kiosco",
     },
-
-    contact: {
+    serialNumber: {
       type: "input",
-      label: "Contacto",
+      label: "Número de serie",
     },
-    kioscos: {
-      type: "datalist",
-      label: "Kioscos",
-      values: [],
+    contactName: {
+      type: "input",
+      label: "Nombre de contacto",
     },
-    operators: {
+    contactPhone: {
+      type: "input",
+      label: "Teléfono de contacto",
+    },
+    location: {
       type: "datalist",
-      label: "Operadores",
+      label: "Ubicación",
       values: [],
     },
   };
   const initialData = {
     title: "",
     serialNumber: "",
-    kioscos: [],
-    operators: [],
+    contactName: "",
+    contactPhone: "",
+    location: [],
   };
 
   const detailOptions = [
     {
       label: "Borrar",
       icon: TrashIcon,
-      action: deleteLocationReq,
+      action: deleteKioscoReq,
       requiresAuth: true,
-      warningTitle: "¿Desea borrar Ubicación?",
+      warningTitle: "¿Desea borrar Kiosco?",
+    },
+    {
+      label: "Ver kiosco",
+      icon: ManageIcon,
+      action: goToViewKiosco,
+      requiresAuth: false,
+      warningTitle: "¿Desea ver Kiosco?",
     },
   ];
 
@@ -83,12 +107,12 @@ export default function Page() {
 
   const [DetailCardCardState, setDetailCardState] = useState(false);
   const [detailCardTitle, setDetailCardTitle] = useState(initialTitle);
-  const [initTemplate, setInitTemplate] = useState(template);
+  const [initTemplate, setInitTemplate] = useState<IinitTemplate>(template);
   const [init, setInit] = useState<IKiosco>(initialData);
   const [edit, setEdit] = useState<IKiosco>(initialData);
   const [canSubmit, setCanSubmit] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [isNewLocation, setIsNewLocation] = useState(false);
+  const [isNewKiosco, setIsNewKiosco] = useState(false);
 
   const [filterValue, setFilterValue] = useState("");
   const [loading, SetLoading] = useState(false);
@@ -96,16 +120,20 @@ export default function Page() {
   const [kioscos, setKioscos] = useState<IKiosco[]>([]);
   const [filteredkioscos, setFilteredKioscos] = useState<IKiosco[]>([]);
   const [page, setPage] = useState(1);
+  const [loctionsPage, setLoctionsPage] = useState(1);
   const [saveTitle, setSaveTitle] = useState<string>("Guardar");
   const [detailCardLoading, setDetailCardLoading] = useState(false);
   const [usersPage, setUsersPage] = useState(1);
   const [kioscosPage, setKioscosPage] = useState(1);
-  const [locationId, setLocationId] = useState<string | null>(null);
+  const [kioscoId, setKioscoId] = useState<string | null>(null);
+  const [shouldReRenderOptions, SetShouldReRenderOptions] = useState(false);
+
+
 
   const handleInputs = (key: string, value: string) => {
     return setEdit((prev) => ({ ...prev, [key]: value }));
   };
-  async function getKioscosReq(page: number, isDeleted:boolean = false) {
+  async function getKioscosReq(page: number, isDeleted: boolean = false) {
     setLoadingGlobal(true);
     const req = (await getKioscos(token as string, page, 5)) as Response;
     if (req) {
@@ -120,11 +148,11 @@ export default function Page() {
           return setCanLoadmore(false);
         }
         if (kioscos.length === 0) {
-          setFilteredKioscos(data)
+          setFilteredKioscos(data);
           return setKioscos(data);
         }
         if (page === 1 && kioscos.length !== 0) {
-          setFilteredKioscos(data)
+          setFilteredKioscos(data);
           return setKioscos(data);
         } else {
           setFilteredKioscos((prev) => [...prev, ...data]);
@@ -138,6 +166,29 @@ export default function Page() {
       }
     }
   }
+  const getLocationsReq = async (locationPage = 1) => {
+    const req = (await getLocations(
+      token as string,
+      locationPage,
+      10
+    )) as Response;
+    if (req.state) {
+      if (Array.isArray(req.data) && req.data.length > 0) {
+        const locationsData = req.data.map((i: any) => ({
+          label: i.title,
+          value: i.locationId,
+          isChecked:false
+        }));
+        setInitTemplate((prev: any) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            values: [...(locationsData as any)],
+          },
+        }));
+      }
+    }
+  };
 
   const loadMore = () => {
     const nextPage = page + 1;
@@ -145,15 +196,14 @@ export default function Page() {
     return getKioscosReq(nextPage);
   };
 
-
-  const getLocationData = async (locationId: string) => {
+  const getKioscoData = async (kioscoId: string) => {
     setLoadingGlobal(true);
-    const req = (await getLocationById(
+    const req = (await getKioscoById(
       token as string,
-      locationId
+      kioscoId
     )) as Response;
     if (req) {
-      setLocationId(locationId);
+      setKioscoId(kioscoId);
       if (!req.state)
         return handleToast(
           "error",
@@ -161,13 +211,13 @@ export default function Page() {
         );
       setLoadingGlobal(false);
       if (req.data) {
-        setIsNewLocation(false);
+        setIsNewKiosco(false);
         const data = req.data as IKiosco;
         setDetailCardTitle(data.title);
         setOptionsMarked(data);
         setInit(data);
         setEdit(data);
-        router.push(`/kioscos?locationId=${data.locationId}`, {
+        router.push(`/kioscos?kioscoId=${data.kioscoId}`, {
           scroll: false,
         });
         setDetailCardState(true);
@@ -176,50 +226,29 @@ export default function Page() {
   };
 
   const setOptionsMarked = (data: IKiosco) => {
-    const kioscoData = data.kioscos.map((i: any) => ({
-      label: i.name,
-      value: i.id,
-      isChecked: true,
-    }));
-    const InitoperatorsTemplate = data.operators.map((i: any) => ({
+    const locationData = data.location.map((i: any) => ({
       label: i.name,
       value: i.id,
       isChecked: true,
     }));
 
-    const kioscoIds = [] as string[];
-    const operatorsIds = [] as string[];
+    const locationsId = [] as string[];
 
-    data.kioscos.map((i: any) => kioscoIds.push(i.id));
-    data.operators.map((i: any) => operatorsIds.push(i.id));
+    data.location.map((i: any) => locationsId.push(i.id));
+    if (initTemplate?.location?.values && Array.isArray( initTemplate.location.values)) {
 
-    const InitTemplatekiosco = initTemplate.kioscos.values.map(
-      (i: ILabelItem) => ({ ...i, isChecked: kioscoIds.includes(i.value) })
-    );
-    const InitTemplateOperators = initTemplate.operators.values.map(
-      (i: ILabelItem) => ({ ...i, isChecked: operatorsIds.includes(i.value) })
-    );
-
-    const initMergeKioscos = [...kioscoData, ...InitTemplatekiosco];
-    const initMergeOperators = [
-      ...InitoperatorsTemplate,
-      ...InitTemplateOperators,
-    ];
-
-    const uniqueKioscos = Array.from(
-      new Map(initMergeKioscos.map((item) => [item.value, item])).values()
-    );
-    const uniqueOperators = Array.from(
-      new Map(initMergeOperators.map((item) => [item.value, item])).values()
-    );
-    setInitTemplate((prev) => ({
+      const initLocationsFromTemplate = initTemplate.location.values.map(
+        (i: ILabelItem) => ({ ...i, isChecked: locationsId.includes(i.value) })
+      );
+      const initMergeLocations = [...locationData, ...initLocationsFromTemplate] as ILabelItem[];
+      
+      const uniqueLocations = Array.from( new Map(initMergeLocations.map((item) => [item.value, item])).values()) as any;
+     
+      setInitTemplate((prev) => ({
       ...prev,
-      kioscos: { ...prev.kioscos, values: uniqueKioscos },
+      location: { ...prev.location, values: uniqueLocations },
     }));
-    setInitTemplate((prev) => ({
-      ...prev,
-      operators: { ...prev.operators, values: uniqueOperators },
-    }));
+  }
   };
 
   const hideDetailCard = () => {
@@ -227,15 +256,14 @@ export default function Page() {
     router.push("/kioscos", { scroll: false });
   };
 
-  const handleNewLocation = async () => {
+  const handleNewKiosco = async () => {
+    await getLocationsReq();
     router.push("/kioscos?isNew=true", { scroll: false });
     setDetailCardState(true);
-    setIsNewLocation(true);
+    setIsNewKiosco(true);
     setInit(initialData);
     setEdit(initialData);
     setDetailCardTitle(initialTitle);
-    await getKioscosReq();
-    await getOperatorsReq();
   };
   const handlecanSubmit = () => {
     return Object.keys(edit).every((item) => {
@@ -248,94 +276,96 @@ export default function Page() {
     });
   };
 
-  const updateLocation = async() => {
+  const updateLocation = async () => {
     const modifiedValues: Partial<IKiosco> = {};
     Object.keys(edit).forEach((key) => {
       const k = key as keyof IKiosco;
-      if(Array.isArray(edit[k])) {
-        const initArrayValues =  init[k] as string[];
-        const editArrayValues = edit[k] as string[];
-        if (initArrayValues.length !== editArrayValues.length) {
-          modifiedValues[k] = editArrayValues;
-        }else {
-          editArrayValues.forEach( i => {
-            if (!initArrayValues.includes(i)) {
+      if (Array.isArray(edit[k])) {
+        const initArrayValues = init[k];
+        const editArrayValues = edit[k];
+        if (Array.isArray(initArrayValues) && initArrayValues.length !== editArrayValues.length) {
+          modifiedValues[k] = edit as any;
+        } else {
+          editArrayValues.forEach((i) => {
+            if (Array.isArray(initArrayValues) &&  !initArrayValues.includes(i)) {
               
             }
-          })
+          });
         }
       }
       if (init[k] !== edit[k]) {
-        modifiedValues[k] = edit[k]
+        modifiedValues[k] = edit[k] as any;
       }
-    })
+    });
     setDetailCardLoading(true);
-    const transformedData = transformDataToUpdate(modifiedValues) as Partial <IKiosco>;
-    const req = await updateLocationById(token as string, locationId as string, transformedData)
+    const transformedData = transformDataToUpdate(
+      modifiedValues as any
+    ) as Partial<IKiosco>;
+    const req = await updateKioscoById(
+      token as string,
+      transformedData,
+      kioscoId as string,
+    ) as Response;
     if (req) {
-    setDetailCardLoading(false)
-      if(req.state) {
-        handleToast('success', 'Ubicación actualizada correctamente')
+      setDetailCardLoading(false);
+      if (req.state) {
+        handleToast("success", "Kiosco actualizada correctamente");
         setInit(edit);
         setIsEdit(false);
         getKioscosReq(page);
-      } else handleToast('error', 'Hubo un error actualizando, intente nuevamente o más tarde')
-    }   
+      } else
+        handleToast(
+          "error",
+          "Hubo un error actualizando, intente nuevamente o más tarde"
+        );
+    }
   };
 
   const transformData = () => {
-    const kioscos = [] as any;
-    const operators = [] as any;
-    if (edit.kioscos.length > 0)
-      edit.kioscos.forEach((i: any) => kioscos.push(i?.id));
-    if (edit.operators.length > 0)
-      edit.operators.forEach((i: any) => operators.push(i?.id));
-
+    const location = [] as any;
+    if (edit.location.length > 0) {
+      edit.location.forEach((i: any) => location.push(i?.id));
+    }
     const copy = {
       ...edit,
-      kioscos,
-      operators,
+      location,
     };
     return copy;
   };
-  const transformDataToUpdate = (data: IKiosco) => {
-    const copy = {...data};
 
-    if (data?.operators) {
-      if (data.operators.length > 0 ) {
-        const ids = []
-        data.operators.forEach((i) => {ids.push(i.id) })
-        copy.operators = ids;
-      }
+  const transformDataToUpdate = (data: IKiosco) => {
+    const copy = { ...data } as Partial<IKiosco>
+    if (data?.location && data.location.length > 0) {
+        const ids = [] as string[];
+
+        data.location.forEach((i) => {
+          ids.push(i.id);
+        });
+        if(copy.location) { 
+        //@ts-ignore
+          copy.location = ids;
+        }
     }
-    if (data?.kioscos) {
-      if (data.kioscos.length > 0 ) {
-        const ids = []
-        data.kioscos.forEach((i) => {ids.push(i.id) })
-        copy.kioscos = ids;
-      }
-    }
-    console.log(copy);
-    return copy
-  }
+    return copy;
+  };
   const handleSubmit = async () => {
-    if (!isNewLocation) {
+    if (!isNewKiosco) {
       return await updateLocation();
     }
     setDetailCardLoading(true);
     const transformedData = transformData();
-    const req = (await createLocation(
+    const req = (await createKiosco(
       token as string,
       transformedData
     )) as Response;
     if (req) {
       setDetailCardLoading(false);
       if (req.state) {
-        router.replace(`/kioscos?locationId=${req.data}`, { scroll: false });
-        handleToast("success", "Ubicaciónc creda correctamente");
+        router.replace(`/kioscos?kioscoId=${req.data}`, { scroll: false });
+        handleToast("success", "Kiosco creado correctamente");
         await getKioscosReq(page);
         setInit(edit);
-        setIsNewLocation(false);
+        setIsNewKiosco(false);
         setDetailCardTitle(edit.title);
         setIsEdit(false);
       } else {
@@ -344,18 +374,18 @@ export default function Page() {
     }
   };
 
-  async function deleteLocationReq() {
+  async function  deleteKioscoReq() {
     setDetailCardLoading(true);
-    const req = (await deleteLocationById(
+    const req = (await deleteKioscoById(
       token as string,
-      locationId as string
+      kioscoId as string
     )) as Response;
     if (req) {
       setDetailCardLoading(false);
       if (req.state) {
         setDetailCardState(false);
         router.push("/kioscos");
-        handleToast("success", "Ubicación eliminada correctamente");
+        handleToast("success", "kiosco eliminado correctamente");
         getKioscosReq(page, true);
       } else {
         handleToast(
@@ -365,6 +395,10 @@ export default function Page() {
       }
     }
   }
+  function goToViewKiosco(){
+    return router.replace(`/kioscos/kioscoInfo?kioscoId=${kioscoId}`); 
+  }
+
 
   const handleListValues = (
     key: string,
@@ -372,48 +406,21 @@ export default function Page() {
     wasChecked: boolean = false,
     label: string
   ) => {
-    const currentValuesChecked: any = [];
-    const editIds = edit[key as keyof IKiosco] as string[];
+    const k = key as keyof IinitTemplate
+    const currentInitTemplate = initTemplate[k].values as ILabelItem[];
+    if(wasChecked) {
 
-    if (Array.isArray(editIds))
-      editIds.map((i: any) => currentValuesChecked.push(i.id));
-    const currentTemplateValues = initTemplate[key].values.filter(
-      (i) => i.value === value
-    )[0] as ILabelItem;
-
-    if (wasChecked) {
-      if (!currentValuesChecked.includes(value)) {
-        const newData = { id: value, name: label };
-        setEdit((prev) => ({ ...prev, [key]: [...prev[key], newData] }));
-        currentTemplateValues.isChecked = true;
-        const currentValues = [...initTemplate[key].values].filter(
-          (i) => i.value !== value
-        );
-        const merge = [...currentValues, currentTemplateValues];
-        setInitTemplate((prev) => ({
-          ...prev,
-          [key]: { ...prev[key], values: merge },
-        }));
-      }
+      const newItem = {id: value, name: label}
+      setEdit(prev => ({...prev, [key]: [{...newItem}]}))
+      const updatedValues  = currentInitTemplate.map(item => ({ ...item, isChecked: item.value === value}));
+      setInitTemplate(prev => ({...prev, [key]: {...prev[k], values: [...updatedValues]} }));
+      SetShouldReRenderOptions(true);
     } else {
-      if (currentValuesChecked.includes(value)) {
-        const unckechValue = [...initTemplate[key].values].filter(
-          (i) => i.value === value
-        )[0] as ILabelItem;
-        const remainingValues = [...initTemplate[key].values].filter(
-          (i) => i.value !== value
-        ) as ILabelItem[];
-        unckechValue.isChecked = false;
-        const merge = [...remainingValues, unckechValue];
-        const filterData = editIds.filter((i) => i.id !== value);
-        setEdit((prev) => ({ ...prev, [key]: filterData }));
-
-        setInitTemplate((prev) => ({
-          ...prev,
-          [key]: { ...prev[key], values: merge },
-        }));
-      }
+      setEdit(prev => ({...prev, [key]: []}))
+      const updatedValues  = currentInitTemplate.map(item => ({ ...item, isChecked:false}));
+      setInitTemplate(prev => ({...prev, [key]: {...prev[k], values: [...updatedValues]} }));
     }
+
   };
   const wasEdited = () => {
     const initKeys = Object.keys(init);
@@ -438,30 +445,38 @@ export default function Page() {
     });
   };
 
-  const handlefilter = (value:string) => {
-    setFilterValue(value)
-      const fileredkioscos = kioscos.filter(
-    (l) =>
-      l.title.toLocaleLowerCase().includes(value.toLocaleLowerCase()) ||
-      l.contact.toLocaleLowerCase().includes(value.toLocaleLowerCase())
-  );
-  setFilteredKioscos(fileredkioscos)
-  }
+  const handlefilter = (value: string) => {
+    setFilterValue(value);
+    const fileredkioscos = kioscos.filter(
+      (l) =>
+        l.title.toLocaleLowerCase().includes(value.toLocaleLowerCase()) ||
+        l.contactName.toLocaleLowerCase().includes(value.toLocaleLowerCase())
+    );
+    setFilteredKioscos(fileredkioscos);
+  };
 
   useEffect(() => {
     getKioscosReq(page);
+    getLocationsReq();
     const newUser = searchParams.get("isNew");
-    const locationId = searchParams.get("locationId");
+    const kioscoId = searchParams.get("kioscoId");
     if (newUser) {
       setDetailCardState(true);
-      return setIsNewLocation(true);
-    } 
-      
-    if (locationId) {
-      setIsNewLocation(false);
-      getLocationData(locationId);
+      return setIsNewKiosco(true);
+    }
+    if (kioscoId) {
+      setIsNewKiosco(false);
+      setKioscoId(kioscoId);
     }
   }, []);
+  
+useEffect(() => {
+
+  if (kioscoId && Array.isArray(initTemplate.location.values) && initTemplate?.location?.values.length > 0) {
+    getKioscoData(kioscoId);
+  }
+  //@ts-ignore
+}, [kioscoId, initTemplate?.location?.values.length]);
 
   useEffect(() => {
     setCanSubmit(handlecanSubmit());
@@ -483,13 +498,14 @@ export default function Page() {
         handleSubmit={handleSubmit}
         handleListValues={handleListValues}
         isLoading={detailCardLoading}
-        isNewItem={isNewLocation}
-        detailCardOptions={detailOptions}
+        isNewItem={isNewKiosco}
+        detailCardOptions={detailOptions} 
+        shouldReRenderOptions={shouldReRenderOptions}
       />
       <div className="main-content">
-        <h1 className="main-header">Ubicaciones</h1>
+        <h1 className="main-header">Kioscos</h1>
         <div className="primary-column">
-          <button className="primary-button" onClick={handleNewLocation}>
+          <button className="primary-button" onClick={handleNewKiosco}>
             Agregar Nuevo
           </button>
 
@@ -509,7 +525,8 @@ export default function Page() {
                 <th className="">Numero de serie</th>
                 <th className="">Contacto</th>
                 <th className="">Ubicaión</th>
-                <th className="">total de operadores</th>
+                <th className="">Activo</th>
+                <th className="">Estatus</th>
               </tr>
             </thead>
             <tbody>
@@ -518,15 +535,14 @@ export default function Page() {
                   <tr
                     key={kiosco.kioscoId}
                     className=""
-                    onClick={() =>
-                      getLocationData(kiosco.kioscoId as string)
-                    }
+                    onClick={() => getKioscoData(kiosco.kioscoId as string)}
                   >
                     <td className="">{kiosco.title}</td>
                     <td className="">{kiosco.serialNumber} </td>
-                    <td className="">{kiosco.contact}</td>
-                    <td className="">{kiosco.locations}</td>
-                    <td className="">{kiosco.operators}</td>
+                    <td className="">{kiosco.contactName}</td>
+                    <td className="">{kiosco.location as any}</td>
+                    <td className="">{kiosco.active}</td>
+                    <td className="">{kiosco.online}</td>
                   </tr>
                 ))
               ) : (

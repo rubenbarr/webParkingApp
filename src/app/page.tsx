@@ -43,10 +43,10 @@ export default function Page() {
         }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
+        router.replace("/login")
         if (error?.message  === 'Failed to fetch'){
           handleToast('error', 'Error en servidor, intente más tarde')
         }
-        router.replace("/login")
       } finally{
         setIsLoading(false);
       }
