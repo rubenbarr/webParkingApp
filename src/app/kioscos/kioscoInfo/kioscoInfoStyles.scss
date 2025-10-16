@@ -90,7 +90,7 @@
 }
 
 
-.financial-container {
+.primary-content{
   background-color: #fff;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -100,11 +100,37 @@
   gap: 1.5rem;
   margin-top: 1rem;
   transition: all 0.3s ease;
-
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    align-items:flex-start;
+    gap: 10px;
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      .question-button {
+        cursor: pointer;
+        border-radius: 25%;
+        padding: 5px;
+        transition: all ease 0.2s;
+        &:hover {
+          background-color: rgb(226, 226, 226);
+          scale: 1.1;
+        }
+        &:active {
+          background-color: rgb(200, 200, 200);
+          scale: 0.9;
+        }
+      }
+    }
+  }
   label {
     color: #333;
+    &.header-title {
+      font-weight: bold;
+    }
   }
-
   .header {
     font-size: 1rem;
     font-weight: 600;
@@ -174,7 +200,7 @@
 
 /* Responsive tweaks */
 @media (max-width: 768px) {
-  .financial-container {
+  .primary-content{
     padding: 1rem;
     grid-template-columns: 1fr;
   }
