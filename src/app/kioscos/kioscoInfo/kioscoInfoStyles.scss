@@ -100,6 +100,10 @@
   gap: 1.5rem;
   margin-top: 1rem;
   transition: all 0.3s ease;
+  &.dataSet {
+    display: flex;
+    flex-direction: column;
+  }
   .header-content {
     display: flex;
     flex-direction: column;

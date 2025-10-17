@@ -55,13 +55,26 @@ interface IkioscoMoney {
   };
 }
 
+interface IqrCodeData {
+  createdAt: string;
+  createdBy: string;
+  expired: boolean;
+  expiresAt: string;
+  kiosco: string;
+  location: string;
+  requestId: string;
+  status: string;
+}
+
 export default function Page() {
   const { isLoadingGlobal, setLoadingGlobal, token, handleToast } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [kioscoId, setKioscoId] = useState<string | null>(null);
   const [kioscoData, setKioscoData] = useState<IkioscoInfo | null>(null);
+  const [qrCodeList, setQrcodeList] = useState<IqrCodeData | []>([]);
   const [displayActivationKey, setDisplayActKey] = useState(false);
+  const [canLoadMore, setCanLoadmore] = useState(false)
   const [kioscoMoneyInfo, setKioscoMoneyInfo] = useState<IkioscoMoney | null>(
     null
   );
@@ -394,16 +407,63 @@ export default function Page() {
     if (!kioscoActive && isLoadingGlobal && !kioscoMoneyInfo) return null;
 
     return (
-      <div className="primary-content">
+      <div className="primary-content dataSet">
         <div className="header-content">
           <div className="header-row">
             <label className="header-title">Operaciones de kiosco</label>
-            <button className="question-button" onClick={() => setShowModal(true)}>
+            <button
+              className="question-button"
+              onClick={() => setShowModal(true)}
+            >
               <MessageCircleQuestionIcon />
             </button>
           </div>
           <button className="primary-button">Generar codigo para kiosco</button>
         </div>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th className="">Creado Por</th>
+                <th className="">Fecha/Creación</th>
+                <th className="">Estatus de Codigo</th>
+                <th className="">Fecha/Expiración</th>
+                <th className="">Estatus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(qrCodeList) && qrCodeList.length > 0 ? (
+                qrCodeList.map((qrCode: IqrCodeData) => (
+                  <tr
+                    key={qrCode.requestId}
+                    className=""
+                  >
+                    <td className="">{qrCode.createdBy}</td>
+                    <td className="">{qrCode.createdAt} </td>
+                    <td className="">{qrCode.expired ? 'Expirado': 'Activo'}</td>
+                    <td className="">{qrCode.expiresAt}</td>
+                    <td className="">{qrCode.status}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="">
+                    Sin datos
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className={"load-more-container"}>
+            {canLoadMore ? (
+              <button className={"load-more-button"} onClick={() => null}>
+                Cargar mas
+              </button>
+            ) : (
+              null
+            )}
+          </div>
       </div>
     );
   };
