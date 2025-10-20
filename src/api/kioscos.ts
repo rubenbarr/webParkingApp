@@ -74,6 +74,52 @@ export async function deleteKioscoById(token:string, kioscoId:string) {
     }
 }
 
+export async function getKioskQrCodes(token:string, kioscoId:string, page:number = 1, limit:number = 10) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/getKioscoQrCodes/${kioscoId}?page=${page}&limit=${limit}`, {
+            method:GET,
+            headers: headers(token)
+        });
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+
+export async function createQrForKiosk(token:string, kioscoId:string) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/create_request/${kioscoId}`, {
+            method:POST,
+            headers: headers(token)
+        });
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+export async function checkActiveQrkiosco(token:string, kioscoId:string) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/checkActiveQrCode/${kioscoId}`, {
+            method:GET,
+            headers: headers(token)
+        });
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+export async function cancelQrCode(token:string, requestId:string) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/cancelQr/${requestId}`, {
+            method:PATCH,
+            headers: headers(token)
+        });
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+
 
 
 

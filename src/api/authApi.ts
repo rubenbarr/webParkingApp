@@ -4,7 +4,7 @@ export const DELETE = 'DELETE';
 export const PATCH = 'PATCH';
 
 export const headersDefault = { "Content-Type": "application/json" };
-export const LOCALHOST = 'http://127.0.0.1:5000'
+export const LOCALHOST = 'http://192.168.0.73:5000'
 
 interface OptionsInterface extends RequestInit {
     timeout?: number;

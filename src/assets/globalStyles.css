@@ -65,11 +65,21 @@ align-items: center;
     cursor: pointer;
     transition: all ease 0.2s;
     width: fit-content;
+    &.secondary {
+        
+        background-color: #461509;
+    }
     &:hover {
         background-color: #0b292c;
     }
     &:active {
-        scale: 0.90;
+        scale: 0.95;
+    }
+    &.disable {
+        background-color: rgb(112, 66, 66);
+        &:hover {
+            background-color: rgb(43, 38, 38);
+        }
     }
 }
 
@@ -167,7 +177,10 @@ table {
     .main-entity-content {
         grid-template-columns: 1fr 1fr;
     }
-    
+    .actions-modal-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 
@@ -198,10 +211,17 @@ table {
         text-align: center;
      }
      .content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         > p {
-            text-align: justify;
-
+            text-align: center;
         }
+     }
+     >.actions-modal-buttons {
+        display: flex;
+        justify-content: space-between;
      }
   }
 

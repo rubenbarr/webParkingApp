@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import cn from "classnames";
 
-import { getKioscoById, getKioscoMoneyData } from "@/api/kioscos";
+import { cancelQrCode, checkActiveQrkiosco, createQrForKiosk, getKioscoById, getKioscoMoneyData, getKioskQrCodes } from "@/api/kioscos";
 import { useAuth } from "@/context/AuthContext";
 import { IKiosco } from "../page";
 import { Response } from "@/api/usersApi";
@@ -72,14 +72,17 @@ export default function Page() {
   const router = useRouter();
   const [kioscoId, setKioscoId] = useState<string | null>(null);
   const [kioscoData, setKioscoData] = useState<IkioscoInfo | null>(null);
-  const [qrCodeList, setQrcodeList] = useState<IqrCodeData | []>([]);
+  const [qrCodeList, setQrcodeList] = useState<IqrCodeData[] | []>([]);
   const [displayActivationKey, setDisplayActKey] = useState(false);
   const [canLoadMore, setCanLoadmore] = useState(false)
-  const [kioscoMoneyInfo, setKioscoMoneyInfo] = useState<IkioscoMoney | null>(
-    null
-  );
+  const [kioscoMoneyInfo, setKioscoMoneyInfo] = useState<IkioscoMoney | null>(null);
   const [kioscoActive, setKioscoActive] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [qrCodesPage, setQrCodePages] = useState(1);
+  const [canRequestQr, setCanRequestQr] = useState(false);
+  const [showQrWarning, setShowQrWarning] = useState(false);
+  const [showHandleQrCode, setShowHandleQrCode] = useState(false);
+  const [QRCodeHandled, setQrCodehandled] = useState<IqrCodeData | object>({})
 
   const [currentDate, setCurrenDate] = useState(new Date().toLocaleString());
 
@@ -105,6 +108,23 @@ export default function Page() {
     }
   }
 
+  async function getkioskQrCodesReq(kioscoId:string){
+    if(qrCodesPage > 1) setLoadingGlobal(true);
+    const req = await getKioskQrCodes(token as string, kioscoId, qrCodesPage) as Response;
+    if(req) {
+      setLoadingGlobal(false);
+      if(req.state) {
+        const data = req.data as IqrCodeData[];
+        if(data.length > 0) {
+          setQrcodeList(data)
+        }
+      } else {
+        handleToast('error', 'Hubo un error obteniendo Qr de kiosco, intente más tarde')
+      }
+
+    }
+  }
+
   async function getKioscoMoneyDataReq(kioscoId: string) {
     setLoadingGlobal(true);
     const req = (await getKioscoMoneyData(
@@ -123,6 +143,34 @@ export default function Page() {
       setKioscoMoneyInfo(moneyD);
     }
   }
+  async function checkQrCodesActive(kioscoId:string) {
+    const req = await checkActiveQrkiosco(token as string, kioscoId) as Response;
+    if (req.state) return setCanRequestQr(false);
+    setCanRequestQr(true);
+  }
+
+  function handleQRInactive(qrcode:IqrCodeData) {
+    if (qrcode.status === 'Inactivo') {
+      setQrCodehandled(qrcode);
+      setShowHandleQrCode(true);
+    } 
+  }
+  async function cancelQrCodeReq() {
+    setLoadingGlobal(true);
+    const data = QRCodeHandled as IqrCodeData
+    const req = await cancelQrCode(token as string, data.requestId) as Response;
+    if(req) {
+      setLoadingGlobal(false);
+      setShowHandleQrCode(false);
+      if(req.state) {
+      getkioskQrCodesReq(kioscoId as string);
+      checkQrCodesActive(kioscoId as string);
+      handleToast('success', 'codigo QR cancelado correctamente')
+    } else {
+      handleToast('error', 'hubo un error cancelando codigo QR')
+    }
+    }
+  }
 
   useEffect(() => {
     const kioscoId = searchParams.get("kioscoId");
@@ -130,8 +178,26 @@ export default function Page() {
     else {
       setKioscoId(kioscoId);
       getKioscoData(kioscoId);
+      getkioskQrCodesReq(kioscoId);
+      checkQrCodesActive(kioscoId);
     }
   }, []);
+
+  async function handleQrRequest(){
+    if(!canRequestQr) return setShowQrWarning(true);
+    setLoadingGlobal(true);
+    const req = await createQrForKiosk(token as string, kioscoId as string) as Response;
+    if(req) {
+      setLoadingGlobal(false);
+      if(req.state) {
+        getkioskQrCodesReq(kioscoId as string)
+        setCanRequestQr(false);
+        handleToast('success', 'Se creó correctamente nuevo codigo QR');
+      }else {
+        handleToast('error', 'no fue posible generar QR intente más tarde');
+      }
+    }
+  }
 
   const kioscoDataContent = () => {
     const info = kioscoData as IKiosco;
@@ -403,6 +469,68 @@ export default function Page() {
       </div>
     );
   };
+  const qrRequestNotAllowed = () => {
+    if (!showQrWarning) return null;
+
+    return (
+      <div className="modal-body">
+        <div className="modal-container">
+          <h1>Solicitud de QR denegada</h1>
+          <div className="content">
+            <p>
+              No es posible Genrear un nuevo codigo QR, existe un Qr Inactivo, cancelelo o si se encuentre vigente utilicelo en el kiosco.
+            </p>
+          </div>
+          <button
+            className="primary-button"
+            onClick={() => setShowQrWarning(false)}
+          >
+            Aceptar
+          </button>
+        </div>
+      </div>
+    );
+  };
+  const handleInactiveQrCodeModal = () => {
+    if (!showHandleQrCode) return null;
+    const qrdata = QRCodeHandled as IqrCodeData;
+    return (
+      <div className="modal-body">
+        <div className="modal-container">
+          <h1>Información de QR</h1>
+            {
+              !qrdata.expired ? (
+                <div className="content">
+                  <p>Escanee codigo en kiosco para habilitar modo administrador</p>
+                <QRCodeSVG width={300} height={300} value={qrdata.requestId}/>
+                </div>
+              ) : (
+                <div className="content">
+                <p>
+                Este codigo ya ha expirado, ¿Desea Cancelarlo?
+            </p>
+          </div>
+              )
+            }
+          <div className="actions-modal-buttons">
+            <button
+              className="primary-button secondary"
+              onClick={() => setShowHandleQrCode(false)}
+              >
+              Salir
+            </button>
+            <button
+              className="primary-button"
+              onClick={cancelQrCodeReq}
+              >
+              Cancelar QR
+            </button>
+            </div>
+        </div>
+      </div>
+    );
+  };
+
   const operatorOptions = () => {
     if (!kioscoActive && isLoadingGlobal && !kioscoMoneyInfo) return null;
 
@@ -418,7 +546,7 @@ export default function Page() {
               <MessageCircleQuestionIcon />
             </button>
           </div>
-          <button className="primary-button">Generar codigo para kiosco</button>
+          <button className={cn("primary-button", {'disable': !canRequestQr })} onClick={handleQrRequest}>Generar codigo para kiosco</button>
         </div>
         <div className="table-container">
           <table>
@@ -437,10 +565,11 @@ export default function Page() {
                   <tr
                     key={qrCode.requestId}
                     className=""
+                    onClick={() => handleQRInactive(qrCode)}
                   >
                     <td className="">{qrCode.createdBy}</td>
                     <td className="">{qrCode.createdAt} </td>
-                    <td className="">{qrCode.expired ? 'Expirado': 'Activo'}</td>
+                    <td className="">{qrCode.status === 'Cancelado' ? 'Cancelado': qrCode.expired ? 'Expirado': 'Activo'}</td>
                     <td className="">{qrCode.expiresAt}</td>
                     <td className="">{qrCode.status}</td>
                   </tr>
@@ -471,6 +600,8 @@ export default function Page() {
   return (
     <>
       {InformativeModal()}
+      {qrRequestNotAllowed()}
+      {handleInactiveQrCodeModal()}
       <div className="kiosco-info-container">
         <div className="header-container">
           <h1 className="main-header">Información de Kiosco</h1>

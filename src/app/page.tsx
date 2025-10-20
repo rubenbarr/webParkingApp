@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react'
 import LoginPage from './login/page'
 import { useAuth } from '@/context/AuthContext'
-import LoadingIcon from '@/assets/icons/LoadingIcon';
 import { validateToken } from '@/api/authApi';
 import { useRouter } from 'next/navigation';
 import LoadingComponent from '@/components/Loading';
