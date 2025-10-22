@@ -287,7 +287,7 @@ export default function Page() {
             </p>
           </div>
           <QRCodeSVG
-            value={kioscoData.activationKey}
+            value={`${kioscoData.activationKey}&${kioscoData.location[0].id}&${kioscoData.kioscoId}`}
             width={300}
             height={300}
           />
@@ -297,7 +297,7 @@ export default function Page() {
   };
 
   const KioscoMoneyData = () => {
-    if (!kioscoActive && isLoadingGlobal && !kioscoMoneyInfo) return null;
+    if (!kioscoActive || isLoadingGlobal || !kioscoMoneyInfo) return null;
 
     const kioscoMoney = kioscoMoneyInfo as IkioscoMoney;
     return (
@@ -532,7 +532,7 @@ export default function Page() {
   };
 
   const operatorOptions = () => {
-    if (!kioscoActive && isLoadingGlobal && !kioscoMoneyInfo) return null;
+    if (!kioscoActive || isLoadingGlobal || !kioscoMoneyInfo) return null;
 
     return (
       <div className="primary-content dataSet">
