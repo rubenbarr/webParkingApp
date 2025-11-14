@@ -10,7 +10,6 @@ import useDelayedUnmount from "@/assets/hooks/DelayedUnmount";
 import FieldComp from "../Field/FieldComp";
 import LoadingComponent from "../Loading";
 import WarningIcon from "@/assets/icons/WarningIcon";
-import { UserTemplate } from "@/app/users/page";
 
 interface DetailOptions {
   label: string;

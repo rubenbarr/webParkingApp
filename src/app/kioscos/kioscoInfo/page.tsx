@@ -258,7 +258,7 @@ export default function Page() {
               className="primary-button"
               onClick={() => setDisplayActKey(true)}
             >
-              Activar Kioscos
+              Obtener codigo para activar kiosco
             </button>
           )}
         </div>
@@ -267,6 +267,9 @@ export default function Page() {
   };
 
   const generateActivationKey = () => {
+    
+    const qrCode  = kioscoData && `${kioscoData.activationKey}&${kioscoData.location[0].id}&${kioscoData.kioscoId}`;
+    if (qrCode)
     return (
       kioscoData &&
       kioscoData.active &&
@@ -285,9 +288,10 @@ export default function Page() {
             <p>
               Para activar kiosco escanee el codigo QR en el lector del kiosco{" "}
             </p>
+            <p>{qrCode}</p>
           </div>
           <QRCodeSVG
-            value={`${kioscoData.activationKey}&${kioscoData.location[0].id}&${kioscoData.kioscoId}`}
+            value={qrCode}
             width={300}
             height={300}
           />
@@ -494,15 +498,17 @@ export default function Page() {
   const handleInactiveQrCodeModal = () => {
     if (!showHandleQrCode) return null;
     const qrdata = QRCodeHandled as IqrCodeData;
+    const MQRcode = `m&${qrdata.requestId}`
     return (
       <div className="modal-body">
         <div className="modal-container">
           <h1>Información de QR</h1>
+          <p>{MQRcode}</p>
             {
               !qrdata.expired ? (
                 <div className="content">
                   <p>Escanee codigo en kiosco para habilitar modo administrador</p>
-                <QRCodeSVG width={300} height={300} value={qrdata.requestId}/>
+                <QRCodeSVG width={300} height={300} value={MQRcode}/>
                 </div>
               ) : (
                 <div className="content">

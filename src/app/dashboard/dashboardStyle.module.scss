@@ -5,8 +5,8 @@
 
     > .content-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
         > div {
             user-select: none;
             cursor: pointer;

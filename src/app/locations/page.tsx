@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { TrashIcon } from "lucide-react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   createLocation,
   deleteLocationById,
@@ -8,13 +11,13 @@ import {
   getLocations,
   updateLocationById,
 } from "@/api/locationApi";
+
 import { getUsers, Response } from "@/api/usersApi";
-import DetailCard from "@/components/DetailCard/Detailcard";
 import { useAuth } from "@/context/AuthContext";
-import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { TrashIcon } from "lucide-react";
 import { getKioscos } from "@/api/kioscos";
+import ManageIcon from "@/assets/icons/ManageIcon";
+
+const DetailCard  = lazy( () => import("@/components/DetailCard/Detailcard"));
 
 interface ILabelItem {
   label: string;
@@ -24,6 +27,12 @@ interface ILabelItem {
 interface item {
   id:string,
   name:string
+}
+
+interface ItemWithVals {
+      type: string,
+      label: string,
+      values: string[],
 }
 
 interface ILocation {
@@ -38,6 +47,31 @@ interface ILocation {
   totalKioscos?: number;
   serialNumber?: string;
 }
+
+  interface Itemplate {
+    title: {
+      type: string
+      label: string
+    },
+    address: {
+      type: string
+      label: string
+    },
+    contact: {
+      type: string
+      label: string
+    },
+    kioscos: {
+      type: string
+      label: string
+      values: string[]
+    },
+    operators: {
+      type: string
+      label: string
+      values: string[]
+    },
+  };
 
 export default function Page() {
   const template = {
@@ -80,6 +114,13 @@ export default function Page() {
       requiresAuth: true,
       warningTitle: "¿Desea borrar Ubicación?",
     },
+    {
+      label: "Ver Ubicación",
+      icon: ManageIcon,
+      action: goToLocationInfo,
+      requiresAuth: false,
+      warningTitle: "¿Desea borrar Ubicación?",
+    },
   ];
 
   const router = useRouter();
@@ -90,7 +131,7 @@ export default function Page() {
 
   const [DetailCardCardState, setDetailCardState] = useState(false);
   const [detailCardTitle, setDetailCardTitle] = useState(initialTitle);
-  const [initTemplate, setInitTemplate] = useState(template);
+  const [initTemplate, setInitTemplate] = useState<Itemplate>(template);
   const [init, setInit] = useState<ILocation>(initialData);
   const [edit, setEdit] = useState<ILocation>(initialData);
   const [canSubmit, setCanSubmit] = useState(false);
@@ -167,7 +208,7 @@ export default function Page() {
     }
   };
 
-  const getKioscosReq = async () => {
+  const getKioscosReq = async (isNew = false) => {
     const req = (await getKioscos(
       token as string,
       kioscosPage,
@@ -187,9 +228,13 @@ export default function Page() {
             values: [...(kioscosData as any)],
           },
         }));
+      } else if ( Array.isArray(req.data) && req.data.length === 0 && isNew ) {
+          setInitTemplate(prev => ({...prev, kioscos:{...prev.kioscos, values: []}}))
       }
     }
   };
+
+
 
   const loadMore = () => {
     const nextPage = page + 1;
@@ -225,6 +270,7 @@ export default function Page() {
         setDetailCardState(true);
       }
     }
+    await getKioscosReq()
   };
 
   const setOptionsMarked = (data: ILocation) => {
@@ -246,10 +292,10 @@ export default function Page() {
     data.operators.map((i: any) => operatorsIds.push(i.id));
 
     const InitTemplatekiosco = initTemplate.kioscos.values.map(
-      (i: ILabelItem) => ({ ...i, isChecked: kioscoIds.includes(i.value) })
+      (i: any) => ({ ...i, isChecked: kioscoIds.includes(i.value) })
     );
     const InitTemplateOperators = initTemplate.operators.values.map(
-      (i: ILabelItem) => ({ ...i, isChecked: operatorsIds.includes(i.value) })
+      (i: any) => ({ ...i, isChecked: operatorsIds.includes(i.value) })
     );
 
     const initMergeKioscos = [...kioscoData, ...InitTemplatekiosco];
@@ -264,11 +310,11 @@ export default function Page() {
     const uniqueOperators = Array.from(
       new Map(initMergeOperators.map((item) => [item.value, item])).values()
     );
-    setInitTemplate((prev) => ({
+    setInitTemplate((prev:any) => ({
       ...prev,
       kioscos: { ...prev.kioscos, values: uniqueKioscos },
     }));
-    setInitTemplate((prev) => ({
+    setInitTemplate((prev:any) => ({
       ...prev,
       operators: { ...prev.operators, values: uniqueOperators },
     }));
@@ -280,13 +326,13 @@ export default function Page() {
   };
 
   const handleNewLocation = async () => {
-    router.push("/locations?isNew=true", { scroll: false });
     setDetailCardState(true);
     setIsNewLocation(true);
     setInit(initialData);
     setEdit(initialData);
+    router.push("/locations?isNew=true", { scroll: false });
     setDetailCardTitle(initialTitle);
-    await getKioscosReq();
+    await getKioscosReq(true);
     await getOperatorsReq();
   };
   const handlecanSubmit = () => {
@@ -301,12 +347,12 @@ export default function Page() {
   };
 
   const updateLocation = async() => {
-    const modifiedValues: Partial<ILocation> = {};
+    const modifiedValues= {} as any;
     Object.keys(edit).forEach((key) => {
-      const k = key as keyof ILocation;
-      if(Array.isArray(edit[k])) {
-        const initArrayValues =  init[k] as string[];
-        const editArrayValues = edit[k] as string[];
+      const k = key &&  key as keyof ILocation;
+      if(Array.isArray(edit[k as keyof ILocation])) {
+        const initArrayValues =  init[k as keyof ILocation] as string[];
+        const editArrayValues = edit[k as keyof ILocation] as string[];
         if (initArrayValues.length !== editArrayValues.length) {
           modifiedValues[k] = editArrayValues;
         }else {
@@ -317,8 +363,8 @@ export default function Page() {
           })
         }
       }
-      if (init[k] !== edit[k]) {
-        modifiedValues[k] = edit[k]
+      if (init[k as keyof ILocation] !== edit[k as keyof ILocation]) {
+        modifiedValues[k] = edit[k as keyof ILocation]
       }
     })
     setDetailCardLoading(true);
@@ -356,15 +402,15 @@ export default function Page() {
 
     if (data?.operators) {
       if (data.operators.length > 0 ) {
-        const ids = []
-        data.operators.forEach((i) => {ids.push(i.id) })
+        const ids = [] as any
+        data.operators.forEach((i:any) => {ids.push(i.id) })
         copy.operators = ids;
       }
     }
     if (data?.kioscos) {
       if (data.kioscos.length > 0 ) {
-        const ids = []
-        data.kioscos.forEach((i) => {ids.push(i.id) })
+        const ids = [] as any
+        data.kioscos.forEach((i:any) => {ids.push(i.id) })
         copy.kioscos = ids;
       }
     }
@@ -418,8 +464,12 @@ export default function Page() {
     }
   }
 
+  function goToLocationInfo(){
+    router.push(`/locations/locationsInfo?locationId=${locationId}`)
+  }
+
   const handleListValues = (
-    key: string,
+    key: string | any,
     value: string | number,
     wasChecked: boolean = false,
     label: string
@@ -429,40 +479,40 @@ export default function Page() {
 
     if (Array.isArray(editIds))
       editIds.map((i: any) => currentValuesChecked.push(i.id));
-    const currentTemplateValues = initTemplate[key].values.filter(
-      (i) => i.value === value
-    )[0] as ILabelItem;
+    const currentTemplateValues = initTemplate[key as keyof Pick<Itemplate, "kioscos" | "operators">].values?.filter(
+      (i:any) => i.value === value
+    )[0] as any;
 
     if (wasChecked) {
       if (!currentValuesChecked.includes(value)) {
         const newData = { id: value, name: label };
-        setEdit((prev) => ({ ...prev, [key]: [...prev[key], newData] }));
+        setEdit((prev) => ({ ...prev, [key]: [...prev[key as keyof Pick<Itemplate, "kioscos" | "operators"> ], newData] }));
         currentTemplateValues.isChecked = true;
-        const currentValues = [...initTemplate[key].values].filter(
-          (i) => i.value !== value
+        const currentValues = [...initTemplate[key as keyof Pick<Itemplate, "kioscos" | "operators">].values].filter(
+          (i:any) => i.value !== value
         );
         const merge = [...currentValues, currentTemplateValues];
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: { ...prev[key], values: merge },
+          [key]: { ...prev[key as keyof Pick<Itemplate, "kioscos" | "operators">], values: merge },
         }));
       }
     } else {
       if (currentValuesChecked.includes(value)) {
-        const unckechValue = [...initTemplate[key].values].filter(
-          (i) => i.value === value
-        )[0] as ILabelItem;
-        const remainingValues = [...initTemplate[key].values].filter(
-          (i) => i.value !== value
-        ) as ILabelItem[];
+        const unckechValue = [...initTemplate[key as keyof Pick<Itemplate, "kioscos" | "operators">].values].filter(
+          (i:any) => i.value === value
+        )[0] as any;
+        const remainingValues = [...initTemplate[key as keyof Pick<Itemplate, "kioscos" | "operators">].values].filter(
+          (i:any) => i.value !== value
+        );
         unckechValue.isChecked = false;
         const merge = [...remainingValues, unckechValue];
-        const filterData = editIds.filter((i) => i.id !== value);
+        const filterData = editIds.filter((i:any) => i.id !== value);
         setEdit((prev) => ({ ...prev, [key]: filterData }));
 
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: { ...prev[key], values: merge },
+          [key]: { ...prev[key as keyof Itemplate], values: merge },
         }));
       }
     }
@@ -478,8 +528,8 @@ export default function Page() {
           return true;
         }
         if (val2.length > 0 && val1.length > 0) {
-          const val1Ids = Array.from(val1.map((i) => i.id));
-          const val2Ids = Array.from(val2.map((i) => i.id));
+          const val1Ids = Array.from(val1.map((i:any) => i.id));
+          const val2Ids = Array.from(val2.map((i:any) => i.id));
           const different =
             val1Ids.some((id) => !val2Ids.includes(id)) ||
             val2Ids.some((id) => !val1Ids.includes(id));
@@ -517,9 +567,10 @@ export default function Page() {
     setCanSubmit(handlecanSubmit());
     setIsEdit(wasEdited());
   }, [edit]);
-
+  
   return (
     <>
+    <Suspense fallback={null}>
       <DetailCard
         detailCardState={DetailCardCardState}
         handleDetailState={hideDetailCard}
@@ -535,7 +586,8 @@ export default function Page() {
         isLoading={detailCardLoading}
         isNewItem={isNewLocation}
         detailCardOptions={detailOptions}
-      />
+        />
+        </Suspense>
       <div className="main-content">
         <h1 className="main-header">Ubicaciones</h1>
         <div className="primary-column">
@@ -549,7 +601,7 @@ export default function Page() {
             className="filter-input"
             value={filterValue}
             onChange={(e) => handlefilter(e.target.value)}
-          />
+            />
         </div>
         <div className="table-container">
           <table>

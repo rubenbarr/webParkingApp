@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
-
-import DetailCard from "@/components/DetailCard/Detailcard";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { TrashIcon } from "lucide-react";
-import cn from "classnames";
+
+const DetailCard = lazy ( () => import("@/components/DetailCard/Detailcard"));
+
 
 import { getLocations } from "@/api/locationApi";
+import { useAuth } from "@/context/AuthContext";
 import {
   createUser,
   deleteUser,
@@ -17,9 +18,9 @@ import {
   Response,
   updateUser,
 } from "@/api/usersApi";
-import { useAuth } from "@/context/AuthContext";
 
 import styles from "./styles/usersStyles.module.scss";
+
 
 interface Location {
   id: string;
@@ -139,7 +140,7 @@ export default function Users() {
 
   const [filterValue, setFilterValue] = useState("");
   const [users, setUsers] = useState<UserTemplate[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserTemplate[]>([]);
+  // const [filteredUsers, setFilteredUsers] = useState<UserTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [DetailCardCardState, setDetailCardState] = useState(false);
   const [saveTitle, setSaveTitle] = useState<string>("Guardar");
@@ -157,6 +158,12 @@ export default function Users() {
   const [isNewUser, setIsNewUser] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => 
+    u.fullname.toLowerCase().includes(filterValue.toLowerCase()) ||
+    u.email.toLowerCase().includes(filterValue.toLowerCase()) 
+    );
+  }, [users, filterValue])
   useEffect(() => {
     setIsEdit(wasEdited());
     setCanSubmit(handleCanSubmit());
@@ -177,12 +184,12 @@ export default function Users() {
 
   const filterUsersByvalue = (value: string) => {
     setFilterValue(value);
-    const filterUsers = users.filter(
-      (u) =>
-        u.fullname.toLowerCase().includes(value.toLowerCase()) ||
-        u.email.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredUsers(filterUsers);
+    // const filterUsers = users.filter(
+    //   (u) =>
+    //     u.fullname.toLowerCase().includes(value.toLowerCase()) ||
+    //     u.email.toLowerCase().includes(value.toLowerCase())
+    // );
+    // setFilteredUsers(filterUsers);
   };
 
   const setOptionsifChecked = async (data: UserTemplate) => {
@@ -283,50 +290,51 @@ export default function Users() {
   }
 
   const handleListValues = (
-    key: string,
+    key: string | any,
     value: string | number,
     wasChecked: boolean = false,
     label: string
   ) => {
     const currentValuesChecked: any = [];
-    const editIds = edit[key as keyof ILocation] as string[];
+    const editIds = edit[key as keyof UserTemplate] as any;
 
     if (Array.isArray(editIds))
       editIds.map((i: any) => currentValuesChecked.push(i.id));
-    const currentTemplateValues = initTemplate[key].values.filter(
+
+    const currentTemplateValues = initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values.filter(
       (i) => i.value === value
-    )[0] as ILabelItem;
+    )[0];
 
     if (wasChecked) {
       if (!currentValuesChecked.includes(value)) {
         const newData = { id: value, name: label };
-        setEdit((prev) => ({ ...prev, [key]: [...prev[key], newData] }));
+        setEdit((prev) => ({ ...prev, [key]: [...prev[key as keyof UserTemplate] as [], newData] }));
         currentTemplateValues.isChecked = true;
-        const currentValues = [...initTemplate[key].values].filter(
+        const currentValues = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
           (i) => i.value !== value
         );
         const merge = [...currentValues, currentTemplateValues];
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: { ...prev[key], values: merge },
+          [key]: { ...prev[key as keyof ITemplate], values: merge },
         }));
       }
     } else {
       if (currentValuesChecked.includes(value)) {
-        const unckechValue = [...initTemplate[key].values].filter(
+        const unckechValue = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
           (i) => i.value === value
-        )[0] as ILabelItem;
-        const remainingValues = [...initTemplate[key].values].filter(
+        )[0];
+        const remainingValues = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
           (i) => i.value !== value
-        ) as ILabelItem[];
+        );
         unckechValue.isChecked = false;
         const merge = [...remainingValues, unckechValue];
-        const filterData = editIds.filter((i) => i.id !== value);
+        const filterData =  editIds.filter((i:any) => i.id !== value);
         setEdit((prev) => ({ ...prev, [key]: filterData }));
 
         setInitTemplate((prev) => ({
           ...prev,
-          [key]: { ...prev[key], values: merge },
+          [key]: { ...prev[key as keyof ITemplate], values: merge },
         }));
       }
     }
@@ -444,7 +452,7 @@ export default function Users() {
     const req = await getUsers(token as string, 1, 5);
     if (req.state) {
       setUsers(req.data);
-      setFilteredUsers(req.data);
+      // setFilteredUsers(req.data);
     }
     setLoading(false);
   };
@@ -540,7 +548,9 @@ export default function Users() {
 
   return (
     <>
-      <DetailCard
+    <Suspense fallback={null}>
+
+    <DetailCard
         detailCardState={DetailCardCardState}
         handleDetailState={hideDetailCard}
         headerTitle={detailCardTitle}
@@ -555,7 +565,8 @@ export default function Users() {
         isLoading={detailCardLoading}
         isNewItem={isNewUser}
         detailCardOptions={detailOptions}
-      />
+        />
+        </Suspense>
       <div className="main-content">
         <h1 className="main-header">Usuarios</h1>
 
@@ -592,7 +603,7 @@ export default function Users() {
                   </td>
                 </tr>
               ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+                filteredUsers.map((user:UserTemplate) => (
                   <tr
                     key={user.userId}
                     className=""

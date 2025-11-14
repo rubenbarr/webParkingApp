@@ -1,9 +1,9 @@
 "use client";
 
-import { useDispatch } from "react-redux";
-import { loginSuccess } from "@/store/slices/authSlice";
+// import { useDispatch } from "react-redux";
+// import { loginSuccess } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, } from "react";
 import EyeIcon from "@/assets/icons/Eye";
 import EyeClosed from "@/assets/icons/EyeClosed";
 import LoadingIcon from "@/assets/icons/LoadingIcon";
@@ -28,7 +28,7 @@ interface LoginReq {
 
 export default function LoginPage() {
   const { login, setIslogged, handleToast } = useAuth();
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const router = useRouter();
   const [invalidSubmit, setInvalidSubmit] = useState(true);
   const [email, setEmail] = useState("");
