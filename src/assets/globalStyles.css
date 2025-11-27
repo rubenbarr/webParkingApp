@@ -13,6 +13,10 @@ align-items: center;
 &.light {
     background-color: rgba(170, 170, 170, 0.61);
 }
+&.internal {
+    left: 0;
+    top: 0;
+}
 }
 
 .loading-icon {

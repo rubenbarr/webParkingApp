@@ -1,3 +1,4 @@
+
 .kiosco-info-container {
     display: flex;
     flex-direction: column;
@@ -202,6 +203,39 @@
   }
 }
 
+.input-dates-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  > .date-form-input {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    > label {
+      font-weight: bold;
+    }
+    > input {
+      background-color: #eef3f8;
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: gray;
+    }
+  }
+}
+
+@media (max-width: 1024px ) and (min-width:769px) {
+
+  .input-dates-row {
+    display: grid;
+    justify-content: flex-start;
+    align-items: flex-start;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+
 /* Responsive tweaks */
 @media (max-width: 768px) {
   .primary-content{
@@ -216,4 +250,15 @@
   .financial-row {
     grid-template-columns: 1fr 1fr;
   }
+  .input-dates-row {
+    flex-direction: column;
+    align-items: flex-start;
+    >.date-form-input {
+      width: 100%;
+      input {
+        width: 100%;
+      } 
+    }
+  }
 }
+

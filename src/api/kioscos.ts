@@ -74,9 +74,9 @@ export async function deleteKioscoById(token:string, kioscoId:string) {
     }
 }
 
-export async function getKioskQrCodes(token:string, kioscoId:string, page:number = 1, limit:number = 10) {
+export async function getKioskQrCodes(token:string, kioscoId:string, page:number = 1, limit:number = 10, fromDate:string, toDate:string) {
     try {
-        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/getKioscoQrCodes/${kioscoId}?page=${page}&limit=${limit}`, {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/qr_request/getKioscoQrCodes/${kioscoId}?page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`, {
             method:GET,
             headers: headers(token)
         });
@@ -120,6 +120,14 @@ export async function cancelQrCode(token:string, requestId:string) {
     }
 }
 
-
-
-
+export async function getTicketsFromLocations(token: string, kioscoId: string, page:number, limit: number, fromDate: string, toDate: string ){
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/kiosco_routes/getTickets/${kioscoId}?page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`, {
+            method: GET,
+            headers: headers(token)
+        }) as Response;
+        return req;
+    } catch (error) {
+        return error
+    }
+}

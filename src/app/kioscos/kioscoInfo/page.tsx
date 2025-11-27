@@ -4,13 +4,22 @@ import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import cn from "classnames";
 
-import { cancelQrCode, checkActiveQrkiosco, createQrForKiosk, getKioscoById, getKioscoMoneyData, getKioskQrCodes } from "@/api/kioscos";
+import {
+  cancelQrCode,
+  checkActiveQrkiosco,
+  createQrForKiosk,
+  getKioscoById,
+  getKioscoMoneyData,
+  getKioskQrCodes,
+  getTicketsFromLocations,
+} from "@/api/kioscos";
 import { useAuth } from "@/context/AuthContext";
 import { IKiosco } from "../page";
 import { Response } from "@/api/usersApi";
 
 import "./kioscoInfoStyles.scss";
 import { MessageCircleQuestionIcon } from "lucide-react";
+import LoadingComponent from "@/components/Loading";
 interface IkioscoInfo extends IKiosco {
   activationKey: string;
 }
@@ -55,6 +64,21 @@ interface IkioscoMoney {
   };
 }
 
+interface ITickets {
+  cerrado: boolean;
+  cocheDentro: boolean;
+  estado: string;
+  fechaCocheHaEntrado: string;
+  fechaEntrada: string;
+  fechaEntradaDate: string;
+  fechaPago: string;
+  fechaSalida: string;
+  fecha_pago: boolean;
+  gateLabel: string;
+  montoPagado: number;
+  ticketId: string;
+}
+
 interface IqrCodeData {
   createdAt: string;
   createdBy: string;
@@ -70,21 +94,45 @@ export default function Page() {
   const { isLoadingGlobal, setLoadingGlobal, token, handleToast } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [currentDate, setCurrenDate] = useState(new Date().toLocaleString());
   const [kioscoId, setKioscoId] = useState<string | null>(null);
   const [kioscoData, setKioscoData] = useState<IkioscoInfo | null>(null);
   const [qrCodeList, setQrcodeList] = useState<IqrCodeData[] | []>([]);
   const [displayActivationKey, setDisplayActKey] = useState(false);
-  const [canLoadMore, setCanLoadmore] = useState(false)
-  const [kioscoMoneyInfo, setKioscoMoneyInfo] = useState<IkioscoMoney | null>(null);
+  const [canLoadMore, setCanLoadmore] = useState(true);
+  const [kioscoMoneyInfo, setKioscoMoneyInfo] = useState<IkioscoMoney | null>(
+    null
+  );
   const [kioscoActive, setKioscoActive] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [qrCodesPage, setQrCodePages] = useState(1);
   const [canRequestQr, setCanRequestQr] = useState(false);
   const [showQrWarning, setShowQrWarning] = useState(false);
   const [showHandleQrCode, setShowHandleQrCode] = useState(false);
-  const [QRCodeHandled, setQrCodehandled] = useState<IqrCodeData | object>({})
+  const [QRCodeHandled, setQrCodehandled] = useState<IqrCodeData | object>({});
+  const [fromDateOperationsRequest, setFromDateOperationsRequest] =
+    useState<string>("");
+  const [toDateOperationsRequest, setToDateOperationsRequest] =
+    useState<string>("");
+  const [fromDateOperationsRequestReq, setFromDateOperationsRequestReq] =
+    useState<string>("");
+  const [toDateOperationsRequestReq, setToDateOperationsRequestReq] =
+    useState<string>("");
+  const [pageQRoperations, setPageQrOperations] = useState<number>(1);
+  const [limitQRoperations, setLimitQrOperations] = useState<number>(10);
 
-  const [currentDate, setCurrenDate] = useState(new Date().toLocaleString());
+  const [kioskTickets, setKioskTickets] = useState<ITickets[]>([]);
+  const [ticketsPage, setTicketsPage] = useState(1);
+  const [ticketsLimit, setTicketsLimit] = useState(10);
+  const [canLoadMoreTickets, setCanLoadMoreTicksts] = useState<boolean>(true);
+  const [fromDateTickets, setFromDateTickets] = useState<string>("");
+  const [toDateTickets, setToDateTickets] = useState<string>("");
+  const [fromDateTicketsReq, setFromDateTicketsReq] = useState<string>("");
+  const [toDateTicketsReq, setToDateTicketsReq] = useState<string>("");
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [qrModalCase, setQrModalCase] = useState<string>("false");
+  const [QrCodeTicketParkingTicket, setQrCodeParkingTicket] =
+    useState<string>("");
 
   async function getKioscoData(kioscoId: string) {
     setLoadingGlobal(true);
@@ -108,21 +156,55 @@ export default function Page() {
     }
   }
 
-  async function getkioskQrCodesReq(kioscoId:string){
-    if(qrCodesPage > 1) setLoadingGlobal(true);
-    const req = await getKioskQrCodes(token as string, kioscoId, qrCodesPage) as Response;
-    if(req) {
-      setLoadingGlobal(false);
-      if(req.state) {
+  async function getkioskQrCodesReq(
+    kioscoId: string,
+    page: number,
+    limit: number,
+    fromDate: string,
+    toDate: string,
+    shouldDisplayLoading: boolean,
+    nextPage: boolean,
+    shouldResetPage: boolean
+  ) {
+    if(shouldDisplayLoading) setInternalLoading(true)
+    const req = (await getKioskQrCodes(
+      token as string,
+      kioscoId,
+      page,
+      limit,
+      fromDate,
+      toDate
+    )) as Response;
+    if (req) {
+      setInternalLoading(false);
+      if (req.state) {
         const data = req.data as IqrCodeData[];
-        if(data.length > 0) {
-          setQrcodeList(data)
+        if (data.length > 0) {
+          if(shouldResetPage){
+            setPageQrOperations(1)
+            setCanLoadmore(true)
+            setQrcodeList(data);
+          } else {
+            setQrcodeList(prev => [...prev, ...data]);
+          }
+        } else {
+          setCanLoadmore(false)
         }
       } else {
-        handleToast('error', 'Hubo un error obteniendo Qr de kiosco, intente más tarde')
+        setCanLoadmore(false)
+        setQrcodeList([]);
+        handleToast(
+          "error",
+          "Hubo un error obteniendo Qr de kiosco, intente más tarde"
+        );
       }
-
     }
+  }
+
+  async function loadMoreOpQrCodes() {
+    const nextPage = pageQRoperations + 1;
+    setPageQrOperations(nextPage);
+    getkioskQrCodesReq(kioscoId as string, nextPage, limitQRoperations, fromDateOperationsRequestReq, toDateOperationsRequestReq, true, true, false);
   }
 
   async function getKioscoMoneyDataReq(kioscoId: string) {
@@ -143,32 +225,105 @@ export default function Page() {
       setKioscoMoneyInfo(moneyD);
     }
   }
-  async function checkQrCodesActive(kioscoId:string) {
-    const req = await checkActiveQrkiosco(token as string, kioscoId) as Response;
+
+  async function GetTicketsFromLocationReq(
+    kioscoId: string,
+    page: number,
+    limit: number,
+    fromDate: string,
+    toDate: string,
+    shouldDisplayLoading: boolean,
+    nextPage: boolean,
+    shouldResetPage: boolean
+  ) {
+    if (shouldResetPage) setTicketsPage(1);
+    setFromDateTicketsReq(fromDate);
+    setToDateTicketsReq(toDate);
+    if (shouldDisplayLoading) setInternalLoading(true);
+    const req = (await getTicketsFromLocations(
+      token as string,
+      kioscoId,
+      page,
+      limit,
+      fromDate,
+      toDate
+    )) as Response;
+    setInternalLoading(false);
+    if (req.state) {
+      const data = req.data as ITickets[];
+      if (data.length > 0) {
+        if (nextPage) {
+          const newData = [...kioskTickets, ...data];
+
+          setKioskTickets(newData);
+        } else {
+          setKioskTickets(data);
+        }
+        setCanLoadMoreTicksts(true);
+      } else {
+        if(!nextPage){
+          setKioskTickets([]);
+        }
+        setCanLoadMoreTicksts(false);
+      }
+    }
+  }
+
+  async function loadMoreTickets() {
+    const newPage = ticketsPage + 1;
+    setTicketsPage(newPage);
+    await GetTicketsFromLocationReq(
+      kioscoId as string,
+      newPage,
+      ticketsLimit,
+      fromDateTickets,
+      toDateTickets,
+      true,
+      true,
+      false
+    );
+  }
+  async function checkQrCodesActive(kioscoId: string) {
+    const req = (await checkActiveQrkiosco(
+      token as string,
+      kioscoId
+    )) as Response;
     if (req.state) return setCanRequestQr(false);
     setCanRequestQr(true);
   }
 
-  function handleQRInactive(qrcode:IqrCodeData) {
-    if (qrcode.status === 'Inactivo') {
-      setQrCodehandled(qrcode);
+  function handleQRInactive(qrcode: IqrCodeData | string) {
+    const data = qrcode as IqrCodeData;
+    if (data.status === "Inactivo") {
+      setQrCodehandled(data);
+      setQrModalCase("handleQrFromKiosk");
       setShowHandleQrCode(true);
-    } 
+    }
   }
+
+  function handleQRFromTicket(ticketId: string) {
+    setQrCodeParkingTicket(ticketId);
+    setQrModalCase("showTicketQr");
+    setShowHandleQrCode(true);
+  }
+
   async function cancelQrCodeReq() {
     setLoadingGlobal(true);
-    const data = QRCodeHandled as IqrCodeData
-    const req = await cancelQrCode(token as string, data.requestId) as Response;
-    if(req) {
+    const data = QRCodeHandled as IqrCodeData;
+    const req = (await cancelQrCode(
+      token as string,
+      data.requestId
+    )) as Response;
+    if (req) {
       setLoadingGlobal(false);
       setShowHandleQrCode(false);
-      if(req.state) {
-      getkioskQrCodesReq(kioscoId as string);
-      checkQrCodesActive(kioscoId as string);
-      handleToast('success', 'codigo QR cancelado correctamente')
-    } else {
-      handleToast('error', 'hubo un error cancelando codigo QR')
-    }
+      if (req.state) {
+        getkioskQrCodesReq(kioscoId as string, 1, limitQRoperations, fromDateOperationsRequest, toDateOperationsRequest, false, false, true );
+        checkQrCodesActive(kioscoId as string);
+        handleToast("success", "codigo QR cancelado correctamente");
+      } else {
+        handleToast("error", "hubo un error cancelando codigo QR");
+      }
     }
   }
 
@@ -176,29 +331,62 @@ export default function Page() {
     const kioscoId = searchParams.get("kioscoId");
     if (!kioscoId) router.replace("/kioscos");
     else {
+      const fromDate = new Date().toISOString().split("T")[0];
+      const toDate = new Date().toISOString().split("T")[0];
+      setFromDateTickets(fromDate);
+      setToDateTickets(toDate);
+      setFromDateOperationsRequest(fromDate);
+      setToDateOperationsRequest(toDate);
+      setFromDateOperationsRequestReq(fromDate)
+      setToDateOperationsRequestReq(toDate)
+
       setKioscoId(kioscoId);
       getKioscoData(kioscoId);
-      getkioskQrCodesReq(kioscoId);
+      getkioskQrCodesReq(kioscoId, 1, limitQRoperations, fromDate, toDate, false, false, true);
       checkQrCodesActive(kioscoId);
+      GetTicketsFromLocationReq(
+        kioscoId,
+        ticketsPage,
+        ticketsLimit,
+        fromDate,
+        toDate,
+        false,
+        false,
+        true
+      );
     }
   }, []);
 
-  async function handleQrRequest(){
-    if(!canRequestQr) return setShowQrWarning(true);
+  async function handleQrRequest() {
+    if (!canRequestQr) return setShowQrWarning(true);
     setLoadingGlobal(true);
-    const req = await createQrForKiosk(token as string, kioscoId as string) as Response;
-    if(req) {
+    const req = (await createQrForKiosk(
+      token as string,
+      kioscoId as string
+    )) as Response;
+    if (req) {
       setLoadingGlobal(false);
-      if(req.state) {
-        getkioskQrCodesReq(kioscoId as string)
+      if (req.state) {
+        getkioskQrCodesReq(kioscoId as string, 1, limitQRoperations, fromDateOperationsRequest, toDateOperationsRequest, false, false, true);
         setCanRequestQr(false);
-        handleToast('success', 'Se creó correctamente nuevo codigo QR');
-      }else {
-        handleToast('error', 'no fue posible generar QR intente más tarde');
+        handleToast("success", "Se creó correctamente nuevo codigo QR");
+      } else {
+        handleToast("error", "no fue posible generar QR intente más tarde");
       }
     }
   }
 
+  const formatToCurrency = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+
+  const transformToCurrency = (value: number) => formatToCurrency.format(value);
+
+  const transformDate = (date: string) => {
+    const newDate = new Date(date).toLocaleString();
+    return newDate;
+  };
   const kioscoDataContent = () => {
     const info = kioscoData as IKiosco;
     const location = kioscoData?.location[0].name || "Desconocido";
@@ -267,37 +455,34 @@ export default function Page() {
   };
 
   const generateActivationKey = () => {
-    
-    const qrCode  = kioscoData && `${kioscoData.activationKey}&${kioscoData.location[0].id}&${kioscoData.kioscoId}`;
-    if (qrCode)
-    return (
+    const qrCode =
       kioscoData &&
-      kioscoData.active &&
-      displayActivationKey && (
-        <div className="activation-key-container">
-          <div className="header-activation-container">
-            <div className="main-header-title">
-              <h1>Codigo de activación</h1>
-              <button
-                onClick={() => setDisplayActKey(false)}
-                className="close-button"
-              >
-                Cerrar
-              </button>
+      `${kioscoData.activationKey}&${kioscoData.location[0].id}&${kioscoData.kioscoId}`;
+    if (qrCode)
+      return (
+        kioscoData &&
+        kioscoData.active &&
+        displayActivationKey && (
+          <div className="activation-key-container">
+            <div className="header-activation-container">
+              <div className="main-header-title">
+                <h1>Codigo de activación</h1>
+                <button
+                  onClick={() => setDisplayActKey(false)}
+                  className="close-button"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <p>
+                Para activar kiosco escanee el codigo QR en el lector del kiosco{" "}
+              </p>
+              <p>{qrCode}</p>
             </div>
-            <p>
-              Para activar kiosco escanee el codigo QR en el lector del kiosco{" "}
-            </p>
-            <p>{qrCode}</p>
+            <QRCodeSVG value={qrCode} width={300} height={300} />
           </div>
-          <QRCodeSVG
-            value={qrCode}
-            width={300}
-            height={300}
-          />
-        </div>
-      )
-    );
+        )
+      );
   };
 
   const KioscoMoneyData = () => {
@@ -321,29 +506,39 @@ export default function Page() {
               <div className="financial-row">
                 <div className="item-content">
                   <label>billetes</label>
-                  <label>{kioscoMoney?.change.totals.bill}</label>
+                  <label>
+                    {transformToCurrency(kioscoMoney?.change.totals.bill)}
+                  </label>
                 </div>
                 <div className="item-content">
                   <label>Monedas</label>
-                  <label>{kioscoMoney?.change.totals.coins}</label>
+                  <label>
+                    {transformToCurrency(kioscoMoney?.change.totals.coins)}
+                  </label>
                 </div>
               </div>
               <label className="header">Ingresos</label>
               <div className="financial-row">
                 <div className="item-content">
                   <label>billetes</label>
-                  <label>{kioscoMoney?.income.totals.bill}</label>
+                  <label>
+                    {transformToCurrency(kioscoMoney?.income.totals.bill)}
+                  </label>
                 </div>
                 <div className="item-content">
                   <label>Monedas</label>
-                  <label>{kioscoMoney?.income.totals.coins}</label>
+                  <label>
+                    {transformToCurrency(kioscoMoney?.income.totals.coins)}
+                  </label>
                 </div>
               </div>
               <label className="header">Total</label>
               <div className="financial-row">
                 <div className="item-content">
                   <label>Total</label>
-                  <label>{kioscoMoney?.income.totals.total}</label>
+                  <label>
+                    {transformToCurrency(kioscoMoney?.income.totals.total)}
+                  </label>
                 </div>
               </div>
             </div>
@@ -369,7 +564,7 @@ export default function Page() {
                 </div>
                 <div className="item-content">
                   <label>{"$20: "}</label>
-                  <label>{kioscoMoney?.income?.bills[50]}</label>
+                  <label>{kioscoMoney?.income?.bills[20]}</label>
                 </div>
               </div>
             </div>
@@ -482,7 +677,8 @@ export default function Page() {
           <h1>Solicitud de QR denegada</h1>
           <div className="content">
             <p>
-              No es posible Genrear un nuevo codigo QR, existe un Qr Inactivo, cancelelo o si se encuentre vigente utilicelo en el kiosco.
+              No es posible Genrear un nuevo codigo QR, existe un Qr Inactivo,
+              cancelelo o si se encuentre vigente utilicelo en el kiosco.
             </p>
           </div>
           <button
@@ -497,41 +693,185 @@ export default function Page() {
   };
   const handleInactiveQrCodeModal = () => {
     if (!showHandleQrCode) return null;
-    const qrdata = QRCodeHandled as IqrCodeData;
-    const MQRcode = `m&${qrdata.requestId}`
-    return (
-      <div className="modal-body">
-        <div className="modal-container">
-          <h1>Información de QR</h1>
-          <p>{MQRcode}</p>
-            {
-              !qrdata.expired ? (
+
+    switch (qrModalCase) {
+      case "handleQrFromKiosk":
+        const qrdata = QRCodeHandled as IqrCodeData;
+        const MQRcode = `m&${qrdata.requestId}`;
+        return (
+          <div className="modal-body">
+            <div className="modal-container">
+              <h1>Información de QR</h1>
+              <p>{MQRcode}</p>
+              {!qrdata.expired ? (
                 <div className="content">
-                  <p>Escanee codigo en kiosco para habilitar modo administrador</p>
-                <QRCodeSVG width={300} height={300} value={MQRcode}/>
+                  <p>
+                    Escanee codigo en kiosco para habilitar modo administrador
+                  </p>
+                  <QRCodeSVG width={300} height={300} value={MQRcode} />
                 </div>
               ) : (
                 <div className="content">
-                <p>
-                Este codigo ya ha expirado, ¿Desea Cancelarlo?
-            </p>
+                  <p>Este codigo ya ha expirado, ¿Desea Cancelarlo?</p>
+                </div>
+              )}
+              <div className="actions-modal-buttons">
+                <button
+                  className="primary-button secondary"
+                  onClick={() => setShowHandleQrCode(false)}
+                >
+                  Salir
+                </button>
+                <button className="primary-button" onClick={cancelQrCodeReq}>
+                  Cancelar QR
+                </button>
+              </div>
+            </div>
           </div>
-              )
-            }
-          <div className="actions-modal-buttons">
-            <button
-              className="primary-button secondary"
-              onClick={() => setShowHandleQrCode(false)}
-              >
-              Salir
-            </button>
+        );
+      case "showTicketQr":
+        return (
+          <div className="modal-body">
+            <div className="modal-container">
+              <h1>Codigo QR de ticket</h1>
+              {
+                <div className="content">
+                  <p>QR de ticket de estacionamiento</p>
+                  <QRCodeSVG
+                    width={300}
+                    height={300}
+                    value={QrCodeTicketParkingTicket}
+                  />
+                </div>
+              }
+              <div className="actions-modal-buttons">
+                <button
+                  className="primary-button secondary"
+                  onClick={() => setShowHandleQrCode(false)}
+                >
+                  Salir
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const ticketsTable = () => {
+    if (!kioscoActive || isLoadingGlobal || !kioscoMoneyInfo) return null;
+    return (
+      <div className="primary-content dataSet">
+        <label className="header-title">Tickets de kiosco</label>
+        <div className="content-row">
+          <label>Buscar ticket for fecha</label>
+          <div className="input-dates-row">
+            <div className="date-form-input">
+              <label htmlFor="">Desde:</label>
+              <input
+                type="date"
+                value={fromDateTickets}
+                onChange={(e) => setFromDateTickets(e.target.value)}
+              />
+            </div>
+            <div className="date-form-input">
+              <label htmlFor="">Hasta:</label>
+              <input
+                type="date"
+                value={toDateTickets}
+                onChange={(e) => setToDateTickets(e.target.value)}
+              />
+            </div>
             <button
               className="primary-button"
-              onClick={cancelQrCodeReq}
-              >
-              Cancelar QR
+              onClick={() =>
+                GetTicketsFromLocationReq(
+                  kioscoId as string,
+                  1,
+                  ticketsLimit,
+                  fromDateTickets,
+                  toDateTickets,
+                  true,
+                  false,
+                  true
+                )
+              }
+            >
+              Buscar
             </button>
-            </div>
+            <label htmlFor="">
+              {" "}
+              <b>Viendo Fecha desde: </b> {fromDateTicketsReq}
+            </label>
+            <label htmlFor="">
+              {" "}
+              <b>Viendo Fecha hasta: </b> {toDateTicketsReq}
+            </label>
+          </div>
+        </div>
+
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th className="">Item</th>
+                <th className="">Fecha creado</th>
+                <th className="">Coche Dentro</th>
+                <th className="">Fecha Pago</th>
+                <th className="">Fecha salida</th>
+                <th className="">Estatus</th>
+                <th className="">Monto</th>
+                <th className="">Codigo QR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(kioskTickets) && kioskTickets.length > 0 ? (
+                kioskTickets.map((ticket: ITickets, index: number) => (
+                  <tr
+                    key={ticket.ticketId}
+                    className=""
+                    onClick={() => handleQRFromTicket(ticket.ticketId)}
+                  >
+                    <td className="">{(index = index + 1)}</td>
+                    <td className="">{transformDate(ticket?.fechaEntrada)} </td>
+                    <td className="">{ticket?.cocheDentro ? "Si" : "No"} </td>
+                    <td className="">
+                      {ticket?.fechaPago
+                        ? transformDate(ticket?.fechaPago)
+                        : "-"}{" "}
+                    </td>
+                    <td className="">
+                      {ticket?.fechaSalida
+                        ? transformDate(ticket?.fechaSalida)
+                        : "-"}{" "}
+                    </td>
+                    <td className="">{ticket?.estado} </td>
+                    <td className="">
+                      {transformToCurrency(ticket?.montoPagado)}{" "}
+                    </td>
+                    <td className="">
+                      <button className="primary-button">Ver</button>{" "}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="">
+                    Sin datos
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className={"load-more-container"}>
+          {canLoadMoreTickets ? (
+            <button className={"load-more-button"} onClick={loadMoreTickets}>
+              Cargar mas
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -552,12 +892,55 @@ export default function Page() {
               <MessageCircleQuestionIcon />
             </button>
           </div>
-          <button className={cn("primary-button", {'disable': !canRequestQr })} onClick={handleQrRequest}>Generar codigo para kiosco</button>
+          <button
+            className={cn("primary-button", { disable: !canRequestQr })}
+            onClick={handleQrRequest}
+          >
+            Generar codigo para kiosco
+          </button>
+        </div>
+        <div className="content-row">
+          <label>Buscar por fecha</label>
+          <div className="input-dates-row">
+            <div className="date-form-input">
+              <label htmlFor="">Desde:</label>
+              <input
+                type="date"
+                value={fromDateOperationsRequestReq}
+                onChange={(e) => setFromDateOperationsRequestReq(e.target.value)}
+              />
+            </div>
+            <div className="date-form-input">
+              <label htmlFor="">Hasta:</label>
+              <input
+                type="date"
+                value={toDateOperationsRequestReq}
+                onChange={(e) => setToDateOperationsRequestReq(e.target.value)}
+              />
+            </div>
+            <button
+              className="primary-button"
+              onClick={() =>
+                  getkioskQrCodesReq(kioscoId as string, 1, limitQRoperations, fromDateOperationsRequestReq, toDateOperationsRequestReq, true, false, true )
+              }
+            >
+              Buscar
+            </button>
+            <label htmlFor="">
+              {" "}
+              <b>Viendo Fecha desde: </b> {fromDateOperationsRequestReq}
+            </label>
+            <label htmlFor="">
+              {" "}
+              <b>Viendo Fecha hasta: </b> {toDateOperationsRequestReq}
+            </label>
+          </div>
         </div>
         <div className="table-container">
           <table>
             <thead>
               <tr>
+                <th className="">Item</th>
                 <th className="">Creado Por</th>
                 <th className="">Fecha/Creación</th>
                 <th className="">Estatus de Codigo</th>
@@ -567,15 +950,22 @@ export default function Page() {
             </thead>
             <tbody>
               {Array.isArray(qrCodeList) && qrCodeList.length > 0 ? (
-                qrCodeList.map((qrCode: IqrCodeData) => (
+                qrCodeList.map((qrCode: IqrCodeData, index:number) => (
                   <tr
                     key={qrCode.requestId}
                     className=""
                     onClick={() => handleQRInactive(qrCode)}
                   >
+                    <td>{index= index +1}</td>
                     <td className="">{qrCode.createdBy}</td>
                     <td className="">{qrCode.createdAt} </td>
-                    <td className="">{qrCode.status === 'Cancelado' ? 'Cancelado': qrCode.expired ? 'Expirado': 'Activo'}</td>
+                    <td className="">
+                      {qrCode.status === "Cancelado"
+                        ? "Cancelado"
+                        : qrCode.expired
+                        ? "Expirado"
+                        : "Activo"}
+                    </td>
                     <td className="">{qrCode.expiresAt}</td>
                     <td className="">{qrCode.status}</td>
                   </tr>
@@ -591,20 +981,19 @@ export default function Page() {
           </table>
         </div>
         <div className={"load-more-container"}>
-            {canLoadMore ? (
-              <button className={"load-more-button"} onClick={() => null}>
-                Cargar mas
-              </button>
-            ) : (
-              null
-            )}
-          </div>
+          {canLoadMore ? (
+            <button className={"load-more-button"} onClick={loadMoreOpQrCodes}>
+              Cargar mas
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   };
 
   return (
-    <>
+    <div className="inter-content">
+      {internalLoading && <LoadingComponent light internal />}
       {InformativeModal()}
       {qrRequestNotAllowed()}
       {handleInactiveQrCodeModal()}
@@ -617,6 +1006,16 @@ export default function Page() {
               onClick={() => {
                 getKioscoData(kioscoId as string);
                 setDisplayActKey(false);
+                GetTicketsFromLocationReq(
+                  kioscoId as string,
+                  1,
+                  ticketsLimit,
+                  fromDateTickets,
+                  toDateTickets,
+                  false,
+                  false,
+                  true
+                );
               }}
             >
               Refrescar Datos
@@ -628,10 +1027,11 @@ export default function Page() {
             {kioscoDataContent()}
             {generateActivationKey()}
             {KioscoMoneyData()}
+            {ticketsTable()}
             {operatorOptions()}
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

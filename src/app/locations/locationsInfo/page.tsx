@@ -7,6 +7,7 @@ import cn from "classnames";
 import { useAuth } from "@/context/AuthContext";
 
 import { Response } from "@/api/usersApi";
+import { getLocationById } from "@/api/locationApi";
 
 import "./kioscoInfoStyles.scss";
 
@@ -41,6 +42,22 @@ export default function Page() {
   const [canLoadMore, setCanLoadMore] = useState(false);
   const [currentDate, setCurrenDate] = useState(new Date().toLocaleString());
   const [locationData, setLocationData] = useState<ILocation>(initialData)
+  const [locationId, setLocationId] = useState<string | null>(null);
+
+  async function getLocationInfo(locationId: string) {
+    const req = await getLocationById(token as string, locationId) as Response
+    if(req.state) {
+      const data = req.data as ILocation;
+      setLocationData(data) 
+    }
+  }
+
+  useEffect(() => {
+    const locationId = searchParams.get('locationId')
+    if(!locationId) router.replace("/locations")
+    getLocationInfo(locationId as string)
+  },[])
+
 
 
     const LocationGeneralData = () => {
@@ -50,7 +67,7 @@ export default function Page() {
           <div className="main-entity-content">
             <label>
               {" "}
-              <b>{"Titulo: "}</b>
+              <b>{"Ubicación: "}</b>
               {locationData.title}
             </label>
             <label>
