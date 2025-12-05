@@ -1,3 +1,22 @@
+
+.login-body {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    flex-direction: column;
+    background-color: #093f46;
+}
+
+.logo-container {
+    display: flex;
+    justify-content: center;
+}
+
 .containerAnimation {
     transform: translateX(-200px);
     transition: transform ease-in-out 0.5s;
@@ -31,4 +50,30 @@
 .inPlace {
     transform: translateX(0);
     transition: transform ease-in-out 0.5s;
+}
+
+
+.login-button {
+    width: 100%;
+    height: 40px;
+    background-color: #093f46;
+    color: white;
+    font-size: 18px;
+    border-radius: 8px;
+    transition: all ease 0.2s;
+   &.login-button:hover, &.login-button:active {
+        background-color: #196069;
+        cursor: pointer;
+    }
+    &.login-button:active {
+        transform: scale(0.95)
+    }
+    &.disable {
+        background-color: #364a4d;
+        cursor: not-allowed;
+       &:hover{
+
+           background-color: #142224;
+       }
+    }
 }

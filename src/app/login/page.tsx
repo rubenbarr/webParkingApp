@@ -1,16 +1,19 @@
 "use client";
 
-// import { useDispatch } from "react-redux";
-// import { loginSuccess } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import cn from 'classnames';
 import EyeIcon from "@/assets/icons/Eye";
 import EyeClosed from "@/assets/icons/EyeClosed";
 import LoadingIcon from "@/assets/icons/LoadingIcon";
 import { loginService, validateAuthenticatorCode } from "@/api/authApi";
-import { toast, ToastContainer } from "react-toastify";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
+
+import Image from "next/image";
+import logo from "../../assets/images/logoOriginalsmartparking.png";
+
 
 import "./styles/pagestyles.css";
 
@@ -275,9 +278,7 @@ export default function LoginPage() {
   };
 
   const codeAndQrcontainerValidation = () => {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-800">
-        {qrcode && (
+    return qrcode && (
           <div
             className={`${containerAnimation} p-8 bg-white shadow rounded w-100`}
           >
@@ -308,10 +309,8 @@ export default function LoginPage() {
               Continuar
             </button>
           </div>
-        )}
-      </div>
-    );
-  };
+        )
+  }
 
   const authenticatorInputCodeContainer = () => {
     return (
@@ -350,7 +349,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-800 p-5">
+    <div className="login-body">
       {qrContainerInPlace && codeAndQrcontainerValidation()}
       {authenticatorContainerVisible && authenticatorInputCodeContainer()}
       {isLoading && loadingComponent()}
@@ -358,9 +357,12 @@ export default function LoginPage() {
         <div
           className={`p-8 bg-white shadow rounded w-96 ${removeLoginContainer}`}
         >
+          <div className="logo-container">
+            <Image src={logo} width={200} height={100} alt="Smart Parking logo"/>
+          </div>
           <h2 className="text-gray-900 font-semibold">Login para usuarios</h2>
           <div className="col-span-full">
-            <label className="block text-sm/6 font-medium text-gray-900 font-semibold">
+            <label className="block text-sm/6 font-medium text-gray-700 font-semibold">
               Correo
             </label>
             <div className="mt-2 mb-4">
@@ -377,8 +379,8 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="col-span-full">
-            <label className="block text-sm/6 font-medium text-gray-900 font-semibold">
-              password
+            <label className="block text-sm/6 font-medium text-gray-700 font-semibold">
+              Contraseña
             </label>
             <div className=" relative mt-2 mb-4">
               <input
@@ -408,7 +410,7 @@ export default function LoginPage() {
             </div>
           </div>
           <button
-            className="w-full bg-blue-500 text-white py-2 rounded  hover:bg-gray-600 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-600"
+            className={cn('login-button', {'disable': !invalidSubmit || isLoading})}
             onClick={handleLogin}
             disabled={!invalidSubmit || isLoading}
           >

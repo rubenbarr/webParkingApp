@@ -8,7 +8,11 @@ import { useEffect, useState } from "react";
 
 import "./style.css";
 
-export default function QrCodePage() {
+type AutehticationProps = {
+  shouldDisplay: boolean;
+}
+
+export default function QrCodePage(props: AutehticationProps) {
   const dispatch = useDispatch();
   const router = useRouter();
   const params = useParams();
@@ -62,9 +66,8 @@ export default function QrCodePage() {
     }, 500);
   };
 
-  return (
-    <div className="flex h-screen items-center justify-center bg-gray-800">
-      {qrContainerInPlace && qrcode && (
+  const qrcodeContainer = () => {
+    return qrContainerInPlace && qrcode && (
         <div
           className={`${containerAnimation} p-8 bg-white shadow rounded w-100`}
         >
@@ -88,7 +91,9 @@ export default function QrCodePage() {
           </button>
         </div>
       )}
-      {!qrContainerInPlace && (
+
+  const codeValidationContent = () => {
+    return !qrContainerInPlace && (
         <div
           className={`${inputContainerAnimation} p-8 bg-white shadow rounded w-100`}
         >
@@ -120,7 +125,13 @@ export default function QrCodePage() {
             Validar Codigo
           </button>
         </div>
-      )}
-    </div>
+      )
+  }
+  
+  return (
+    props.shouldDisplay && (      
+      <div className="flex h-screen items-center justify-center bg-gray-800">
+      </div>
+      )
   );
 }
