@@ -12,7 +12,7 @@ export default function WrapperLayout({
   children: React.ReactNode;
 }) {
   const path = usePathname();
-  const noLayOutRoutes = ["/", "/login"];
+  const noLayOutRoutes = ["/", "/login", '/apollo'];
   const shouldSkipLayputContent = noLayOutRoutes.includes(path);
 
   return (
