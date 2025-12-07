@@ -4,8 +4,8 @@ export const DELETE = 'DELETE';
 export const PATCH = 'PATCH';
 
 export const headersDefault = { "Content-Type": "application/json" };
-export const LOCALHOST = 'http://192.168.0.73:5000'
-
+export const LOCALHOST = process.env.NEXT_PUBLIC_API_URL
+console.log(LOCALHOST)
 interface OptionsInterface extends RequestInit {
     timeout?: number;
 }

@@ -1,4 +1,5 @@
 import * as React from "react";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const EyeIcon = (props:object | any) => (
   <svg
     fill="#000000"

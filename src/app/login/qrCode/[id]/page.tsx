@@ -8,11 +8,7 @@ import { useEffect, useState } from "react";
 
 import "./style.css";
 
-type AutehticationProps = {
-  shouldDisplay: boolean;
-}
-
-export default function QrCodePage(props: AutehticationProps) {
+export default function QrCodePage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const params = useParams();
@@ -128,10 +124,4 @@ export default function QrCodePage(props: AutehticationProps) {
       )
   }
   
-  return (
-    props.shouldDisplay && (      
-      <div className="flex h-screen items-center justify-center bg-gray-800">
-      </div>
-      )
-  );
 }

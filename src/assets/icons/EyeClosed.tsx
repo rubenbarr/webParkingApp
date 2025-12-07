@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const EyeClosed = (props:object | any) => (
   <svg
     width="800px"

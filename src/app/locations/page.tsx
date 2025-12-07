@@ -369,7 +369,7 @@ export default function Page() {
     })
     setDetailCardLoading(true);
     const transformedData = transformDataToUpdate(modifiedValues) as Partial <ILocation>;
-    const req = await updateLocationById(token as string, locationId as string, transformedData)
+    const req = await updateLocationById(token as string, locationId as string, transformedData) as Response;
     if (req) {
     setDetailCardLoading(false)
       if(req.state) {

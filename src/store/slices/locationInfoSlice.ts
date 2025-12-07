@@ -78,7 +78,8 @@ const locationInfoSlice = createSlice({
         })
         .addCase(fetchLocationInfo.fulfilled, (state, action) => {
             state.loading = false
-            const data = action.payload.locationData as LocationState;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const data = action.payload.locationData as any;
             state.locationData = data;
         })
         .addCase(fetchLocationInfo.rejected, (state, action) => {
