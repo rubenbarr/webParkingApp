@@ -4,10 +4,10 @@ export const DELETE = 'DELETE';
 export const PATCH = 'PATCH';
 
 export const headersDefault = { "Content-Type": "application/json" };
-export const LOCALHOST = process.env.NEXT_PUBLIC_API_URL
-console.log(LOCALHOST)
+export const LOCALHOST =  process.env?.NEXT_PUBLIC_IS_LOCAL === "true" ?  process.env.NEXT_PUBLIC_LOCAL_URL :  process.env.NEXT_PUBLIC_API_URL 
 interface OptionsInterface extends RequestInit {
     timeout?: number;
+    external?:boolean
 }
 interface Response {
     state: boolean
@@ -16,6 +16,12 @@ interface Response {
     limit?: number
     page?: number
     total?: number
+}
+
+interface INewPassword {
+    email:string;
+    temporalPassword:string;
+    newPassword: string;
 }
 
 export async function  fetchWithTimeout(url:string, options:OptionsInterface) {
@@ -69,4 +75,52 @@ export async function validateToken(token:string) {
         })
 
         return request;
+}
+export async function validateUrlFromChangePasswordPage(tempToken:string, requestId:string ) {
+    const headersInit = {
+        temporalToken: tempToken,
+        userId: requestId
+    };
+
+    const request = await fetchWithTimeout(`${LOCALHOST}/api/user_routes/checkPasswordChangeUrl`, {
+        method: GET,
+        headers: {
+            ...headersDefault,
+            ...headersInit
+        }
+    })
+    return request;
+}
+
+export async function submitNewPassword(tempToken:string, requestId:string, data: INewPassword ) {
+    const headersInit = {
+        temporalToken: tempToken,
+        userId: requestId
+    };
+    const payload = JSON.stringify(data);
+
+    const request = await fetchWithTimeout(`${LOCALHOST}/api/user_routes/changePasswordWithTemporal`, {
+        method: POST,
+        headers: {
+            ...headersDefault,
+            ...headersInit
+        },
+        body: payload
+        
+    })
+    return request;
+}
+export async function requestPasswordReset(email:string ) {
+
+    const payload = JSON.stringify({email});
+
+    const request = await fetchWithTimeout(`${LOCALHOST}/api/user_routes/recoverPassword`, {
+        method: POST,
+        headers: {
+            ...headersDefault,
+        },
+        body: payload
+        
+    })
+    return request;
 }

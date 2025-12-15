@@ -77,3 +77,18 @@
        }
     }
 }
+
+.forgot-password-label {
+    color: #1515cc;
+    display: flex;
+    justify-content: right;
+    margin-top: 20px;
+    &:hover{
+        cursor: pointer;
+        color: #0c0c79;
+        text-decoration: underline;
+    }
+    &:active {
+        color: #3232b8;
+    }
+}

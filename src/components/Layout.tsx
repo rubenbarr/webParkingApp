@@ -67,7 +67,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout  = () => {
     logout()
-    router.replace('login')
+    router.replace('/login')
   }
   if (loadingContext || validating) return <LoadingComponent />;
   if (!Logged) return null;
@@ -131,9 +131,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <div onClick={() => handleSideMenu("/kioscos")} className="">
                   Kioscos
                 </div>
+                <div onClick={() => handleSideMenu("/payTicket")} className="">
+                  Pagar Ticket
+                </div>
               </div>
               <div className={style["side-bottom-menu"]}>
-                <div>Ajustes</div>
+                <div onClick={() => handleSideMenu('/settingsPage')} >Ajustes</div>
                 <div onClick={handleLogout}>Salir</div>
               </div>
             </nav>

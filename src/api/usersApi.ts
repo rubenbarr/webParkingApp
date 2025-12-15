@@ -9,6 +9,7 @@ export interface Response {
     limit?: number
     page?: number
     total?: number
+    error?: string
 }
 
 export async function getUsers(token: string, page: number = 1, limit: number = 5, onlyUperators:boolean = false) {

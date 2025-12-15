@@ -41,8 +41,6 @@ export default function Page() {
     } else router.replace('/locations')
   },[])
 
-  console.log(locationData)
-
     const LocationGeneralData = () => {
   
       return (
@@ -173,54 +171,6 @@ export default function Page() {
                 <label><b>{"Tickets por pagar: " }</b>test</label>
               </div>
             </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
-            <div className="row">
-              <b>Información de Mes</b>
-              <div className="content-row">
-                <label><b>{"Pagos del mes: " }</b>test</label>
-                <label><b>{"Entradas: " }</b>test</label>
-                <label><b>{"Tickets por pagar: " }</b>test</label>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -236,8 +186,8 @@ export default function Page() {
             >
               Refrescar Datos
             </button>
-   
         </div>
+        <button className="primary-button" onClick={() => router.push(`/payTicket?locationId=${locationId}` )}> Pagar boleto</button>
             {LocationGeneralData()}
             {financialContent()}
             {operatorsList()}

@@ -20,7 +20,9 @@ import "./styles/pagestyles.css";
 type TokenType = {
   token: string;
   user: string;
-  qrCode: string;
+  qr: string;
+  requestId: string;
+  tempToken: string;
 };
 
 interface LoginReq {
@@ -43,7 +45,7 @@ export default function LoginPage() {
   const [containerAnimation, setContainerAnimation] = useState<string>("");
   const [inputContainerAnimation, setInputContainerAnimation] =
     useState("inputContainer");
-  const [qrContainerInPlace, setQrContainerInPlace] = useState<boolean>(true);
+  const [qrContainerInPlace, setQrContainerInPlace] = useState<boolean>(false);
   const [canSubmitAuthenticatorCode, setCanSubmitAuthenticatorCode] =
     useState<boolean>(false);
   const [authenticatorContainerVisible, setAuthenticatorContainerVisible] =
@@ -99,6 +101,27 @@ export default function LoginPage() {
     }
   };
 
+  function handleLoginCase(caseType:string, data: TokenType) {
+    console.log(caseType);
+    switch (caseType) {
+      case "isGlobal":
+            login(data.user, data.token);
+          return  router.replace("/dashboard");
+      case "shouldAuthenticate":
+          setIsAuthenticated(false);
+          handleLoginAnimation(data.qr, false);
+          return setInitTimer(true);
+      case "authenticated":
+          setIsAuthenticated(true);
+          return handleLoginAnimation(data.qr, true);
+      case "changePassword":
+        return router.push(`/changePassword?tempToken=${data.tempToken}&requestId=${data.requestId}`)
+      default:
+        return null;
+    }
+
+  }
+
   const handleLogin = async () => {
     try {
       setIsloading(true);
@@ -109,18 +132,19 @@ export default function LoginPage() {
           handleToast('error', 'Credenciales Invalidas')
         } else {
           setInvalidSubmit(false);
-          handleToast('success', 'Bienvenido')
-          if (req.message === "isGlobal") {
-            login(req.data.user, req.data.token);
-            router.replace("/dashboard");
-          } else if (req.message == "") {
-            setIsAuthenticated(false);
-            handleLoginAnimation(req.data.qrCode, false);
-            setInitTimer(true);
-          } else if (req.message === "authenticated") {
-            setIsAuthenticated(true);
-            handleLoginAnimation(req.data.qrCode, true);
-          }
+          handleLoginCase(req.message, req.data as TokenType);
+          // handleToast('success', 'Bienvenido')
+          // if (req.message === "isGlobal") {
+          //   login(req.data.user, req.data.token);
+          //   router.replace("/dashboard");
+          // } else if (req.message == "") {
+          //   setIsAuthenticated(false);
+          //   handleLoginAnimation(req.data.qr, false);
+          //   setInitTimer(true);
+          // } else if (req.message === "authenticated") {
+          //   setIsAuthenticated(true);
+          //   handleLoginAnimation(req.data.qr, true);
+          // } 
         }
       }
     } catch (error) {
@@ -278,7 +302,7 @@ export default function LoginPage() {
   };
 
   const codeAndQrcontainerValidation = () => {
-    return qrcode && (
+    return  (
           <div
             className={`${containerAnimation} p-8 bg-white shadow rounded w-100`}
           >
@@ -291,7 +315,7 @@ export default function LoginPage() {
             <h1 className="font-semibold mb-4 text-center">
               Scanea el codigo con tu app de Autenticador
             </h1>
-            <div className="mb-10 flex justify-center w-full h-full">
+            <div className="flex justify-center">
               {qrcode && <QRCodeSVG value={qrcode} size={300} />}
             </div>
             {initTimer && (
@@ -416,6 +440,7 @@ export default function LoginPage() {
           >
             Login
           </button>
+          <a onClick={() => router.push('/recoverPassword')} className="forgot-password-label">Olvidé mi contraseña</a>
         </div>
       )}
     </div>
