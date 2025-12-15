@@ -158,7 +158,7 @@ export default function ChangePasswordPage() {
     setCanSubmit(validSubmit && hasValidNewPassword);
   }, [globalState]);
 
-  const changePasswordContent = () => {
+  const ChangePasswordContent = () => {
     return (
       <>
       { secondaryLoading && <LoadingComponent light={true} />}
@@ -335,6 +335,6 @@ export default function ChangePasswordPage() {
   return isLoading ? (
     <LoadingComponent light={true} />
   ) : shouldDisplay ? (
-    changePasswordContent()
+    ChangePasswordContent()
   ) : null;
 }
