@@ -23,6 +23,7 @@ type TokenType = {
   qr: string;
   requestId: string;
   tempToken: string;
+  userType: string;
 };
 
 interface LoginReq {
@@ -32,7 +33,7 @@ interface LoginReq {
 }
 
 export default function LoginPage() {
-  const { login, setIslogged, handleToast } = useAuth();
+  const { login, setIslogged, handleToast, setUserType } = useAuth();
   // const dispatch = useDispatch();
   const router = useRouter();
   const [invalidSubmit, setInvalidSubmit] = useState(true);
@@ -88,6 +89,7 @@ export default function LoginPage() {
           });
           login(req.data.user, req.data.token);
           setIslogged(true);
+          setUserType(req.data.userType)
           router.replace("/dashboard");
         }
       }
@@ -102,9 +104,11 @@ export default function LoginPage() {
   };
 
   function handleLoginCase(caseType:string, data: TokenType) {
-    console.log(caseType);
     switch (caseType) {
       case "isGlobal":
+            login(data.user, data.token);
+          return  router.replace("/dashboard");
+      case "isTrial":
             login(data.user, data.token);
           return  router.replace("/dashboard");
       case "shouldAuthenticate":

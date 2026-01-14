@@ -76,6 +76,15 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    > .header-payment-content {
+        display: flex;
+        flex-direction: column;
+        > .payment-total-info {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+    }
 }
 .payment-container {
     display: flex;
@@ -119,11 +128,15 @@
     }
     .payment-container {
  
-    >.payment-option-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        width: 100%;
-        gap: 5px;
+        >.payment-option-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            width: 100%;
+            gap: 5px;
+        }
     }
-}
+    .payment-content > .header-payment-content >.payment-total-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        }
 }

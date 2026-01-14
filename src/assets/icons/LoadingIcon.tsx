@@ -3,6 +3,7 @@ import * as React from "react";
 type PropsIcon = {
     width?:string,
     height?: string
+    fill?:string;
  }
 
 const LoadingIcon = (props: PropsIcon ) => (

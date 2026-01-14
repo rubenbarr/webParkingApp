@@ -73,8 +73,19 @@ align-items: center;
         
         background-color: #461509;
     }
+    &.reset {
+      background-color: rgb(248, 248, 248);
+      color: rgb(65, 65, 65);
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.08);
+
+    }
     &:hover {
         background-color: #0b292c;
+        &.reset {
+          background-color: rgb(202, 202, 202);
+        }
     }
     &:active {
         scale: 0.95;
@@ -84,6 +95,10 @@ align-items: center;
         &:hover {
             background-color: rgb(43, 38, 38);
         }
+    }
+    &:disabled {
+      background-color: #333;
+      cursor: not-allowed;
     }
 }
 
@@ -101,6 +116,27 @@ align-items: center;
     padding: 0 10px;
     &:focus {
         outline: 1px solid #093f46;
+    }
+}
+.main-input {
+    border: 1px solid #eeeeee;
+    outline: transparent;
+    width: 100%;
+    border-radius: 5px;
+    height: 40px;
+    padding: 0 10px;
+    &:focus {
+        outline: 2px solid #093f46;
+    }
+    &.white  {
+      &:focus {
+        background-color: white;
+      }
+      &:disabled {
+        background-color: rgb(245, 245, 245);
+        cursor: not-allowed;
+        border: none;
+      }
     }
 }
 
@@ -229,4 +265,173 @@ table {
      }
   }
 
+}
+.primary-content{
+  &.dataSet {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    align-items:flex-start;
+    gap: 10px;
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      .question-button {
+        cursor: pointer;
+        border-radius: 25%;
+        padding: 5px;
+        transition: all ease 0.2s;
+        &:hover {
+          background-color: rgb(226, 226, 226);
+          scale: 1.1;
+        }
+        &:active {
+          background-color: rgb(200, 200, 200);
+          scale: 0.9;
+        }
+      }
+    }
+    &.with-options {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+  label {
+    color: #333;
+    &.header-title {
+      font-weight: bold;
+    }
+  }
+  .header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #444;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 0.3rem;
+  }
+
+  .financial-content {
+    background-color: #fafafa;
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: #f5f7fa;
+    }
+
+    .financial-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .header {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #555;
+      }
+
+      .financial-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.25rem;
+        align-items: center;
+        padding: 0.4rem 0.5rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #eef3f8;
+        }
+
+        .item-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.9rem;
+
+          label:first-child {
+            font-weight: 500;
+            color: #444;
+          }
+          label:last-child {
+            font-weight: 600;
+            color: #007b83;
+          }
+        }
+      }
+    }
+  }
+}
+
+.input-dates-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  > .date-form-input {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    > label {
+      font-weight: bold;
+    }
+    > input {
+      background-color: #eef3f8;
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: gray;
+    }
+  }
+}
+
+
+@media (max-width: 1024px ) and (min-width:769px) {
+
+  .input-dates-row {
+    display: grid;
+    justify-content: flex-start;
+    align-items: flex-start;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}@media (max-width: 768px) {
+  .primary-content{
+    padding: 1rem;
+    grid-template-columns: 1fr;
+    .header-content {
+      &.with-options {
+        flex-direction: column
+      }
+    }
+  }
+
+  .financial-content {
+    padding: 0.8rem;
+  }
+
+  .financial-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .input-dates-row {
+    flex-direction: column;
+    align-items: flex-start;
+    >.date-form-input {
+      width: 100%;
+      input {
+        width: 100%;
+      } 
+    }
+  }
 }

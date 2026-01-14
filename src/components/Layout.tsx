@@ -14,10 +14,15 @@ import logo from "./../assets/images/logoOriginalsmartparking.png";
 import style from "./Layout.module.scss";
 
 import cn from "classnames";
+
+interface tokenResponse {
+  name: string;
+  userType: string;
+}
 interface Response {
   state: boolean;
   message: string;
-  data: [string] | [];
+  data: tokenResponse;
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -30,6 +35,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     handleToast,
     isLogged,
     isLoadingGlobal,
+    userType,
+    setUserType,
   } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -46,6 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           const req = (await validateToken(token as string)) as Response;
           if (req.state) {
             setIsLogged(true);
+            setUserType(req.data.userType);
           } else {
             router.replace("/login");
           }
@@ -61,14 +69,60 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [loadingContext, router]);
 
   const handleSideMenu = (url: string) => {
-    router.replace(url);
-    setMinimize(true)
+    router.push(url);
+    setMinimize(true);
   };
 
-  const handleLogout  = () => {
-    logout()
-    router.replace('/login')
-  }
+  const adminMenu = () => (
+    <>
+      <div className={style["side-top-menu"]}>
+        <div onClick={() => handleSideMenu("/dashboard")} className="">
+          Dashboard
+        </div>
+        <div onClick={() => handleSideMenu("/users")} className="">
+          Usuarios
+        </div>
+        <div onClick={() => handleSideMenu("/locations")} className="">
+          Ubicaciones
+        </div>
+        <div onClick={() => handleSideMenu("/kioscos")} className="">
+          Kioscos
+        </div>
+        <div onClick={() => handleSideMenu("/payTicket")} className="">
+          Pagar Ticket
+        </div>
+        <div onClick={() => handleSideMenu("/credits")} className="">
+          Creditos
+        </div>
+      </div>
+      {buttonMenu()}
+    </>
+  );
+
+  const buttonMenu = () => (
+    <div className={style["side-bottom-menu"]}>
+      <div onClick={() => handleSideMenu("/settingsPage")}>Ajustes</div>
+      <div onClick={handleLogout}>Salir</div>
+    </div>
+  );
+
+  const operatorMenu = () => (
+    <>
+      <div className={style["side-top-menu"]}>
+        <div onClick={() => handleSideMenu("/dashboard")} className="">
+          Dashboard
+        </div>
+        <div onClick={() => handleSideMenu("/payTicket")} className="">
+          Pagar Ticket
+        </div>
+      </div>
+        {buttonMenu()}
+    </>
+  );
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
   if (loadingContext || validating) return <LoadingComponent />;
   if (!Logged) return null;
 
@@ -82,7 +136,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => {
                 setDisplayMenu(!displayMenu);
-                setMinimize(true)
+                setMinimize(true);
               }}
               className=""
             >
@@ -91,21 +145,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <Image src={logo} alt="Smart Parking" width={200} />
         </div>
-        <div className="">
-          {user && <span className="">{user}</span>}
-        </div>
+        <div className="">{user && <span className="">{user}</span>}</div>
       </header>
       <div className={style["content-container"]}>
-        <aside className={cn(style["sidebar"], {[style['minimize']]: minimize}, {[style['expand']]: displayMenu} ) }>
-          <div
-            className={style["side-bar-button"]}
-          >
+        <aside
+          className={cn(
+            style["sidebar"],
+            { [style["minimize"]]: minimize },
+            { [style["expand"]]: displayMenu }
+          )}
+        >
+          <div className={style["side-bar-button"]}>
             {minimize ? (
-              <button className={style["menu-icon"]} onClick={() => setMinimize(!minimize)}>
+              <button
+                className={style["menu-icon"]}
+                onClick={() => setMinimize(!minimize)}
+              >
                 <Minimize2 size={20} color="white" />
               </button>
             ) : (
-              <button className={style["menu-icon"]} onClick={() => setMinimize(!minimize)}>
+              <button
+                className={style["menu-icon"]}
+                onClick={() => setMinimize(!minimize)}
+              >
                 <X size={24} color="white" />
               </button>
             )}
@@ -116,33 +178,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {!minimize && (
-            <nav className={style["side-menu"]}>
-              <div className={style["side-top-menu"]}>
-                <div onClick={() => handleSideMenu("/dashboard")} className="">
-                  Dashboard
-                </div>
-                <div onClick={() => handleSideMenu("/users")} className="">
-                  Usuarios
-                </div>
-                <div onClick={() => handleSideMenu("/locations")} className="">
-                  Ubicaciones
-                </div>
-                <div onClick={() => handleSideMenu("/kioscos")} className="">
-                  Kioscos
-                </div>
-                <div onClick={() => handleSideMenu("/payTicket")} className="">
-                  Pagar Ticket
-                </div>
-              </div>
-              <div className={style["side-bottom-menu"]}>
-                <div onClick={() => handleSideMenu('/settingsPage')} >Ajustes</div>
-                <div onClick={handleLogout}>Salir</div>
-              </div>
-            </nav>
-          )}
+          {!minimize && <nav className={style["side-menu"]}>
+            {userType && userType === "global-admin"
+                ? adminMenu()
+                : operatorMenu()}
+            </nav>}
         </aside>
-        <main className={style["main-content"]} onClick={()=> setMinimize(true)}>{children}</main>
+        <main
+          className={style["main-content"]}
+          onClick={() => setMinimize(true)}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

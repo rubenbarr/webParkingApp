@@ -27,7 +27,6 @@ export default function QrCodePage() {
       setQrContainerInPlace(false);
       shownextAnimation();
     }, 500);
-    console.log(inputContainerAnimation)
   };
   useEffect(() => {
     const { id } = params as { id?: string };

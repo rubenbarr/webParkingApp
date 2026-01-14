@@ -26,7 +26,6 @@ export default function Page() {
         }
         setIsLoading(true);
         const req = (await validateToken(token as string)) as RequestType;
-        console.log(req);
         if (req) {
           setIsLoading(false);
           if (req.state) {

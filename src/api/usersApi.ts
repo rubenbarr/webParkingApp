@@ -33,7 +33,7 @@ export async function getUsers(token: string, page: number = 1, limit: number = 
 }
 
 export async function createUser(data: object, token: string) {
-    console.log(data)
+
     try {
         const headers = {
             ...headersDefault,

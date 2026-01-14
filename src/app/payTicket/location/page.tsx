@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getLocationById } from "@/api/locationApi";
 import { TrashIcon } from "lucide-react";
 import { Response } from "@/api/usersApi";
-import { getTicketInfoById } from "@/api/ticketsApi";
+import { getTicketInfoById, payTicket } from "@/api/ticketsApi";
+import cn from "classnames";
 
 import "./payticketlocation.scss";
 
@@ -38,13 +39,39 @@ export default function PayTicketInLocation() {
   const { setLoadingGlobal, token, handleToast } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
-
+  const initialBillsCoinsInfo = {
+    bills: {
+      20: 0,
+      50: 0,
+      100: 0,
+      200: 0,
+      500: 0,
+    },
+    coins: {
+      0.5: 0,
+      1: 0,
+      2: 0,
+      5: 0,
+      10: 0,
+    },
+  }
+  const initialPaymentState = {
+    totalPayed: 0,
+    totalBills: 0,
+    totalCoins: 0,
+  } 
   const [locationInfo, setLocationInfo] = useState<ILocation | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string>("");
   const [shouldDisplayTicketInfo, setShouldDisplayTicketInfo] =
     useState<boolean>(false);
   const [canPayTicket, setCanPayTicket] = useState<boolean>(false);
+  const [canSubmitPayment, setCanSubmitPayment] = useState(false);
+  const [paymentState, setPaymentState] = useState({
+    totalPayed: 0,
+    totalBills: 0,
+    totalCoins: 0,
+  });
 
   const [ticketInfo, setTicketInfo] = useState<ITicketInfo | null>(null);
   const [payment, setPayment] = useState<Ipayment>({
@@ -56,7 +83,7 @@ export default function PayTicketInLocation() {
       500: 0,
     },
     coins: {
-      0.5:0,
+      0.5: 0,
       1: 0,
       2: 0,
       5: 0,
@@ -104,11 +131,41 @@ export default function PayTicketInLocation() {
         setShouldDisplayTicketInfo(true);
         setTicketInfo(data);
         if (data.estado === "pendiente") setCanPayTicket(true);
+        else  setCanPayTicket(false)
       }
     } catch (error) {
       handleToast("error", `Hubo un error: ${error}`);
     } finally {
       setLoadingGlobal(false);
+    }
+  }
+
+  async function payTicketRequest() {
+    if (!canSubmitPayment) return;
+
+    const data = {
+      amount: ticketInfo?.total_payment,
+      paymentData: payment,
+      totalPayed: paymentState.totalPayed,
+      change: paymentState.totalPayed - (ticketInfo?.total_payment as number),
+    };
+    setCanSubmitPayment(false);
+    setLoadingGlobal(true);
+    setTicketId("");
+    setPaymentState(initialPaymentState);
+    setPayment(initialBillsCoinsInfo);
+    setCanPayTicket(false)
+    try {
+      const req = await payTicket(token as string, ticketInfo?.ticketId as string, data) as Response;
+      if (!req.state) return handleToast('error', req?.message);
+      handleToast('success', req.message);
+      setShouldDisplayTicketInfo(false);
+    } catch (error:any) {
+      handleToast('error', error?.message || 'Hubo un error, intente más tarde')
+    } finally {
+      setCanSubmitPayment(true);
+      setLoadingGlobal(false);
+
     }
   }
 
@@ -125,14 +182,24 @@ export default function PayTicketInLocation() {
   };
 
   const totalPay = () => {
+    const totalBills =
+      Object.entries(payment["bills"]).reduce(
+        (acc, [currency, total]) => acc + Number(currency) * total,
+        0
+      ) || 0;
+    const totalCoins =
+      Object.entries(payment["coins"]).reduce(
+        (acc, [currency, total]) => acc + Number(currency) * total,
+        0
+      ) || 0;
 
-    const totalBills = Object.entries(payment['bills']).reduce((acc, [currency, total]) => acc + Number(currency) * total, 0) || 0
-    const totalCoins = Object.entries(payment['coins']).reduce((acc, [currency, total]) => acc + Number(currency) * total, 0) || 0
-
-    return[ transformToCurrency(totalBills  + totalCoins), transformToCurrency(totalBills),  transformToCurrency(totalCoins)]
-  }
-
-  
+    const totalPayed = totalBills + totalCoins;
+    setPaymentState({ totalPayed, totalBills, totalCoins });
+    setCanSubmitPayment(
+      totalBills + totalCoins > 0 &&
+        totalBills + totalCoins >= (ticketInfo?.total_payment as number)
+    );
+  };
 
   useEffect(() => {
     const locationIdP = params.get("id");
@@ -141,179 +208,289 @@ export default function PayTicketInLocation() {
     getLocationInfo(locationIdP as string);
   }, []);
 
+  useEffect(() => {
+    totalPay();
+  }, [payment]);
+
   const payTicketActions = () => {
     return (
       shouldDisplayTicketInfo &&
       canPayTicket && (
         <div className="payment-content">
           <div className="header-payment-content">
-          <label> <b>Pago de Boleto </b></label>
-            <label><b>Total pagado: </b>{totalPay()[0]}</label>
+            <label>
+              {" "}
+              <b>Pago de Boleto </b>
+            </label>
+            <div className="payment-total-info">
+              <label>
+                <b>Total a pagar: </b>
+                {ticketInfo?.total_payment &&
+                  transformToCurrency(ticketInfo?.total_payment)}
+              </label>
+              <label>
+                <b>Total pagado: </b>
+                {transformToCurrency(paymentState.totalPayed)}
+              </label>
+              <label>
+                <b>Total Restante: </b>
+                {ticketInfo?.total_payment &&
+                paymentState.totalPayed <= ticketInfo.total_payment
+                  ? transformToCurrency(
+                      ticketInfo?.total_payment - paymentState.totalPayed
+                    )
+                  : 0}
+              </label>
+              <label>
+                <b>Cambio: </b>
+                {ticketInfo?.total_payment &&
+                paymentState.totalPayed > 0 &&
+                paymentState.totalPayed > ticketInfo.total_payment
+                  ? transformToCurrency(
+                      paymentState.totalPayed - ticketInfo?.total_payment
+                    )
+                  : transformToCurrency(0)}
+              </label>
+            </div>
           </div>
           <div className="payment-container">
             <label>Pago con billetes</label>
-            <label><b>{"Total Pagado con billetes: "}</b>{totalPay()[1]}</label>
+            <label>
+              <b>{"Total Pagado con billetes: "}</b>
+              {transformToCurrency(paymentState.totalBills)}
+            </label>
             <div className="payment-option-container">
               <div className="payment-option">
                 <label>
                   <b>Billetes de 20</b>
                 </label>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.bills['20']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, bills: { ...prev.bills, 20: parseInt(e.target.value) } }))
-                    }}
-                  />
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.bills["20"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      bills: {
+                        ...prev.bills,
+                        20:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Billetes de 50</b>
                 </label>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.bills['50']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, bills: { ...prev.bills, 50: parseInt(e.target.value) } }))
-                    }}
-                    />
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.bills["50"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      bills: {
+                        ...prev.bills,
+                        50:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Billetes de 100</b>
                 </label>
 
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.bills['100']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, bills: { ...prev.bills, 100: parseInt(e.target.value) } }))
-                    }}
-                    />
-      
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.bills["100"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      bills: {
+                        ...prev.bills,
+                        100:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Billetes de 200</b>
                 </label>
 
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.bills['200']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, bills: { ...prev.bills, 200: parseInt(e.target.value) } }))
-                    }}
-                    />
-        
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.bills["200"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      bills: {
+                        ...prev.bills,
+                        200:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Billetes de 500</b>
                 </label>
-      
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.bills['500']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, bills: { ...prev.bills, 500: parseInt(e.target.value) } }))
-                    }}
-                    />
-    
+
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.bills["500"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      bills: {
+                        ...prev.bills,
+                        500:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
             </div>
           </div>
           <div className="payment-container">
             <label>Pago con Monedas</label>
-            <label><b>{"Total Pagado con monedas: "}</b>{totalPay()[2]}</label>
+            <label>
+              <b>{"Total Pagado con monedas: "}</b>
+              {transformToCurrency(paymentState.totalCoins)}
+            </label>
             <div className="payment-option-container">
               <div className="payment-option">
                 <label>
                   <b>Monedas de 50c</b>
                 </label>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.coins['0.5']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, coins: { ...prev.coins, 0.5: parseInt(e.target.value) } }))
-                    }}
-                  />
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.coins["0.5"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      coins: {
+                        ...prev.coins,
+                        0.5:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Monedas de 1</b>
                 </label>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.coins['1']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, coins: { ...prev.coins, 1: parseInt(e.target.value) } }))
-                    }}
-                  />
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.coins["1"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      coins: {
+                        ...prev.coins,
+                        1: e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Monedas de 2</b>
                 </label>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.coins['2']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, coins: { ...prev.coins, 2: parseInt(e.target.value) } }))
-                    }}
-                    />
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.coins["2"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      coins: {
+                        ...prev.coins,
+                        2: e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Monedas de 5</b>
                 </label>
 
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.coins['5']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, coins: { ...prev.coins, 5: parseInt(e.target.value) } }))
-                    }}
-                    />
-      
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.coins["5"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      coins: {
+                        ...prev.coins,
+                        5: e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
               <div className="payment-option">
                 <label>
                   <b>Monedas de 10</b>
                 </label>
 
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={payment.coins['10']}
-                    min={0}
-                    onChange={(e) => {
-                      setPayment((prev) => ({...prev, coins: { ...prev.coins, 10: parseInt(e.target.value) } }))
-                    }}
-                    />
-        
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={payment.coins["10"]}
+                  min={0}
+                  onChange={(e) => {
+                    setPayment((prev) => ({
+                      ...prev,
+                      coins: {
+                        ...prev.coins,
+                        10:
+                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                      },
+                    }));
+                  }}
+                />
               </div>
             </div>
           </div>
-          <button className="primary-button">Pagar</button>
-      </div>
+          <button
+            className={cn("primary-button", { disable: !canSubmitPayment })}
+            disabled={!canSubmitPayment}
+            onClick={payTicketRequest}
+          >
+            Pagar
+          </button>
+        </div>
       )
     );
   };

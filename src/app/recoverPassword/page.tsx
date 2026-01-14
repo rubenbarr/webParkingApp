@@ -143,7 +143,7 @@ export default function ChangePasswordPage() {
                 })}
                 htmlFor="prev-password"
               >
-                Confirmar Contraseña
+                Confirmar correo
               </label>
               <button
                 onClick={() =>

@@ -19,6 +19,8 @@ interface AuthContextType {
   handleToast: (toastType: "error" | "success", message: string) => void;
   isLoadingGlobal: boolean;
   setLoadingGlobal: (state: boolean) => void;
+  userType: string | null;
+  setUserType: (state: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loadingContext, setIsloaginContext] = useState<boolean>(true);
   const [isLogged, setIslogged] = useState(false);
   const [isLoadingGlobal, setLoadingGlobal] = useState<boolean>(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
 
   useEffect(() => {
     const storageToken = localStorage.getItem("token");
@@ -46,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (toastType === "success") {
         return toast.success(message, { closeButton: true, autoClose: 4000 });
       }
-    } catch(err) {console.log(err)}
+    } catch(err) {}
   };
   const login = (user: string, token: string) => {
     localStorage.setItem("token", token);
@@ -74,6 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIslogged,
         isLoadingGlobal,
         setLoadingGlobal,
+        userType, 
+        setUserType
       }}
     >
       {children}

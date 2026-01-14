@@ -127,7 +127,6 @@ export default function ChangePasswordPage() {
       }
 
     } catch (error) {
-      console.log(error);
       handleToast('error', 'Hubo un error actualizando contraseña, intente más tarde o comuniquese con administración');
     } finally {
       setSecondaryLoading(false);

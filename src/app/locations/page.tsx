@@ -373,7 +373,6 @@ export default function Page() {
     if (req) {
     setDetailCardLoading(false)
       if(req.state) {
-        console.log(handleInputs)
         handleToast('success', 'Ubicación actualizada correctamente')
         setInit(edit);
         setIsEdit(false);
