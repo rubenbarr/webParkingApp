@@ -132,13 +132,13 @@ export default function PayTicketPage() {
             <div className="">
               <label><b>{'Estatus: '}</b>{creditInfo?.status}</label>
               <label><b>{'$ Credito disponible: '}</b>{creditInfo?.current_amount}</label>
+              <button className="primary-button">Refrescar info</button>
             </div>
             ) :
             <div>
               No puedes generar pagos, no cuentas con credito, solicita credito a tu administrador.
             </div>
           }
-          <button className="primary-button">Refrescar info</button>
         </div>
         <div className="header-container">
           <h1 className="main-header">Pagar ticket</h1>
