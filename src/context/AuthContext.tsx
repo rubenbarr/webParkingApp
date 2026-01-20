@@ -20,7 +20,9 @@ interface AuthContextType {
   isLoadingGlobal: boolean;
   setLoadingGlobal: (state: boolean) => void;
   userType: string | null;
-  setUserType: (state: string) => void
+  setUserType: (state: string) => void,
+  isAuthorized: boolean,
+  setIsAuthorized : (state:boolean) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLogged, setIslogged] = useState(false);
   const [isLoadingGlobal, setLoadingGlobal] = useState<boolean>(false);
   const [userType, setUserType] = useState<string | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
 
   useEffect(() => {
@@ -79,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoadingGlobal,
         setLoadingGlobal,
         userType, 
-        setUserType
+        setUserType,
+        isAuthorized,
+        setIsAuthorized
       }}
     >
       {children}

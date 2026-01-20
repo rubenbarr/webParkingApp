@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Menu, X, Minimize2 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +27,7 @@ interface Response {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const path = usePathname();
   const {
     user,
     logout,
@@ -44,6 +45,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [Logged, setIsLogged] = useState(isLogged || false);
   const [validating, isValidating] = useState(false);
   const [displayMenu, setDisplayMenu] = useState(false);
+
+  const operatorsUrls = ['dashboard', 'ticketPayment', 'settingsPage', 'ticketPayment'];
+
   useEffect(() => {
     const validateTokenReq = async () => {
       try {
@@ -67,6 +71,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
     validateTokenReq();
   }, [loadingContext, router]);
+
+
+  useEffect(() => {
+    console.log(path.split('/'))
+      if (userType === 'operador' ) {
+        if(! operatorsUrls.includes(path.split('/')[1])) {
+          router.replace('/dashboard');
+        }
+      }
+  },[path, router, loadingContext, userType])
 
   const handleSideMenu = (url: string) => {
     router.push(url);
@@ -112,7 +126,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div onClick={() => handleSideMenu("/dashboard")} className="">
           Dashboard
         </div>
-        <div onClick={() => handleSideMenu("/payTicket")} className="">
+        <div onClick={() => handleSideMenu("/ticketPayment")} className="">
           Pagar Ticket
         </div>
       </div>

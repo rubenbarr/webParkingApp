@@ -28,6 +28,21 @@ export async function getLocations(token: string, page: number, limit: number) {
     return error;
   }
 }
+
+export async function getMyLocations(token: string, page: number, limit: number) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/locations_route/getMyLocations?page=${page}&limit=${limit}`,
+      {
+        method: GET,
+        headers: headers(token),
+      }
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}
 export async function createLocation(token: string, data: object) {
   try {
     const req = await fetchWithTimeout(

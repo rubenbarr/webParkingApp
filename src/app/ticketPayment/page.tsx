@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { getLocations } from "@/api/locationApi";
+import { getMyLocations } from "@/api/locationApi";
 import { Response } from "@/api/usersApi";
 import { getPersonalCreditInfoRequest } from "@/api/credits";
 
@@ -17,6 +17,13 @@ interface ILocation {
   createdBy?: string;
   locationId?: string;
   totalKioscos?: number;
+}
+interface ICredit {
+  creditUsed: number;
+  current_amount: number;
+  initial_amount: number;
+  requestId: string;
+  status: string;
 }
 
 export default function PayTicketPage() {
@@ -32,10 +39,27 @@ export default function PayTicketPage() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
+  const [creditInfo, setCreditInfo] = useState<ICredit | null>(null);
+  const [hasCredit, setHasCredit] = useState<boolean>(false);
+
+  async function getPersonalCreditInfo(shouldLoad: boolean = false) {
+    if (shouldLoad) setLoadingGlobal(true);
+    const req = (await getPersonalCreditInfoRequest(
+      token as string,
+    )) as Response;
+    setLoadingGlobal(false);
+    if (req.state) {
+      const info = req.data as ICredit;
+      setCreditInfo(info);
+      setHasCredit(true);
+    } else {
+      setHasCredit(false);
+    }
+  }
 
   async function getLocationsReq(page: number, isDeleted: boolean = false) {
     setLoadingGlobal(true);
-    const req = (await getLocations(token as string, page, limit)) as Response;
+    const req = (await getMyLocations(token as string, page, limit)) as Response;
     if (req) {
       setLoadingGlobal(false);
       if (req.state) {
@@ -93,7 +117,7 @@ export default function PayTicketPage() {
   };
 
   async function handleRefreshFunctions() {
-    await Promise.all([getLocationsReq(page)]).then(
+    await Promise.all([getLocationsReq(page), getPersonalCreditInfo()]).then(
       () => setLoadingData(false),
     );
   }
@@ -107,6 +131,7 @@ export default function PayTicketPage() {
   }, [filterValue]);
 
   const locationInfo = () => {
+    if (!hasCredit) return null;
     return (
       <>
         <div className="header-container">
@@ -151,7 +176,7 @@ export default function PayTicketPage() {
                     key={index}
                     onClick={() =>
                       router.push(
-                        "/payTicket/location?id=" + item.locationId,
+                        "/ticketPayment/location?id=" + item.locationId,
                       )
                     }
                   >
@@ -192,9 +217,42 @@ export default function PayTicketPage() {
     );
   };
 
-  return (
+  const creditInfoContent = () => (
+
+    <div className="credit-info-content">
+          <h1 className="secondary-header">Informacion de credito</h1>
+          {hasCredit ? (
+            <div className="content">
+              <label>
+                <b>{"Estatus: "}</b>
+                {creditInfo?.status}
+              </label>
+              <label>
+                <b>{"$ Credito disponible: "}</b>
+                {creditInfo?.current_amount}
+              </label>
+            </div>
+          ) : (
+            <div className="no-credit">
+              No puedes generar pagos, no cuentas con credito, solicita credito
+              a tu administrador.
+            </div>
+          )}
+          <button
+            onClick={() => getPersonalCreditInfo(true)}
+            className="primary-button"
+            >
+            Refrescar info
+          </button>
+        </div>
+)
+
+return (
+  <>
       <div className="main-content">
+        {creditInfoContent()}
         {locationInfo()}
       </div>
+    </>
   );
 }
