@@ -3,9 +3,28 @@ import { fetchWithTimeout, GET, LOCALHOST, PATCH, POST, DELETE} from "./authApi"
 import { headers } from "./locationApi";
 import { Response } from "./usersApi";
 
-export async function getCreditsPaginated(page:number, limit:number, token:string){
+interface IQueryParams {
+    fromDate: string
+    toDate: string
+}
+
+export async function getCreditsPaginated(page:number, limit:number, token:string, params: IQueryParams){
+    const from = params?.fromDate || null;
+    const to = params.toDate || null;
+    const dateParam = from  && to ? `&fromDate=${from}&toDate=${to}` : null;
     try {
-        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/get_credits?page=${page}&limit=${limit}`, {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/get_credits?page=${page}&limit=${limit}${dateParam}`, {
+            method: GET,
+            headers: headers(token), 
+        })
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+export async function getPersonalCreditInfoRequest(token:string){
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/check`, {
             method: GET,
             headers: headers(token), 
         })
@@ -15,6 +34,7 @@ export async function getCreditsPaginated(page:number, limit:number, token:strin
     }
 }
 export async function getCreditById(requestId:string, token:string){
+    if (!requestId) return
     try {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/get_credit/${requestId}`, {
             method: GET,
@@ -53,6 +73,18 @@ export async function addCreditRequest(token:string, data:object){
 export async function cancelCreditRequest(token:string, data:object, requestId:string){
     try {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/cancel_credit/${requestId}`, {
+            method: PATCH,
+            headers: headers(token), 
+            body: JSON.stringify(data)
+        })
+        return req as Response;
+    } catch (error) {
+        return error;
+    }
+}
+export async function closeCreditRequest(token:string, data:object, requestId:string){
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/close_credit/${requestId}`, {
             method: PATCH,
             headers: headers(token), 
             body: JSON.stringify(data)

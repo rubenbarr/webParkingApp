@@ -5,6 +5,8 @@ import { ArrowRightIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getLocations } from "@/api/locationApi";
 import { Response } from "@/api/usersApi";
+import './payticket.scss'
+import { getPersonalCreditInfoRequest } from "@/api/credits";
 
 interface ILocation {
   title: string;
@@ -14,6 +16,13 @@ interface ILocation {
   createdBy?: string;
   locationId?: string;
   totalKioscos?: number;
+}
+interface ICredit {
+      creditUsed: number
+    current_amount: number
+    initial_amount: number
+    requestId: string
+    status: string
 }
 
 export default function PayTicketPage() {
@@ -29,6 +38,21 @@ export default function PayTicketPage() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(1);
+  const [creditInfo, setCreditInfo] = useState<ICredit | null>(null);
+  const [hasCredit, setHasCredit] = useState<boolean>(false)
+
+  async function getPersonalCreditInfo(shouldLoad:boolean = false){
+    const req = await getPersonalCreditInfoRequest(token as string) as Response;
+    if (req.state) 
+    {
+      const info = req.data as ICredit[];
+      setCreditInfo(info[0]);
+      setHasCredit(true)
+    } else {
+      setHasCredit(false)
+    }
+
+  }
 
   async function getLocationsReq(page: number, isDeleted: boolean = false) {
     setLoadingGlobal(true);
@@ -90,16 +114,32 @@ export default function PayTicketPage() {
     if (filterValue === "") setFilteredLocations([...locations]);
   };
 
+  async function handleRefreshFunctions() {
+    await Promise.all([ getLocationsReq(page), getPersonalCreditInfo() ]).then(() => setLoadingData(false))
+  }
+
   useEffect(() => {
-    getLocationsReq(page);
-  }, []);
-  useEffect(() => {
-    setFilterValues();
+    handleRefreshFunctions()
   }, [filterValue]);
 
   return (
     <>
       <div className="main-content">
+        <div className="credit-info-content">
+          <h1 className="secondary-header">Informacion de credito</h1>
+          { creditInfo ? (
+
+            <div className="">
+              <label><b>{'Estatus: '}</b>{creditInfo?.status}</label>
+              <label><b>{'$ Credito disponible: '}</b>{creditInfo?.current_amount}</label>
+            </div>
+            ) :
+            <div>
+              No puedes generar pagos, no cuentas con credito, solicita credito a tu administrador.
+            </div>
+          }
+          <button className="primary-button">Refrescar info</button>
+        </div>
         <div className="header-container">
           <h1 className="main-header">Pagar ticket</h1>
           <label>Seleccione una ubicación para poder pagar un ticket</label>

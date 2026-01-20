@@ -7,6 +7,7 @@ import cn from "classnames";
 import {
   addCreditRequest,
   cancelCreditRequest,
+  closeCreditRequest,
   getCreditById,
   getCreditsPaginated,
   getOperatorsReqPaginated,
@@ -20,7 +21,7 @@ interface CreditList {
   createdAt: string;
   createdBy: string;
   current_amount: number | null;
-  finalAmount: number | null;
+  finalAmount: string | number | null;
   initial_amount: number | null | string;
   creditCharged: number | null;
   operator: string;
@@ -28,6 +29,7 @@ interface CreditList {
   status: string;
   updatedAt: string;
   userId: string;
+  creditUsed?: string;
 }
 
 interface IOperator {
@@ -36,14 +38,15 @@ interface IOperator {
 }
 
 interface IClosedCredit {
-  finalAmount: string | number;
+  credit_delivered: string | number;
   closed_date: string;
   receptor: string;
-  status: string;
+  closed_status: string;
   comment: string;
 }
 
 export default function Page() {
+  //initial states
   const initialCreditInfo = {
     createdAt: "",
     createdBy: "",
@@ -58,25 +61,38 @@ export default function Page() {
     creditCharged: null,
   };
 
-  const initialCredicCloseInfo = {
-    finalAmount: "",
+  const initialCreditCloseInfo = {
+    credit_delivered: "",
     closed_date: "",
     receptor: "",
-    status: "incompleto",
+    closed_status: "",
     comment: "",
   };
+
+  //initial states END
+
+  //utils
   const { userType, token, handleToast, setLoadingGlobal } = useAuth();
   const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
   const searchParams = useSearchParams();
+  const handleRouter = (id: string) => {
+    return router.push(`/credits?requestId=${id}`);
+  };
 
+  //end of utils
+
+  //State
   const [canLoadMore, setCanLoadMore] = useState(false);
   const [fromDate, setFromDate] = useState<string>(today);
   const [toDate, setToDate] = useState<string>(today);
   const [creditList, setCreditList] = useState<CreditList[]>([]);
+  const [creditListFiltered, setCreditListFiltered] = useState<CreditList[]>(
+    [],
+  );
   const [creditInfo, setCreditInfo] = useState<CreditList>(initialCreditInfo);
   const [creditsPage, setCreditsPage] = useState(1);
-  const [creditsLimit, setCreditsLimit] = useState(10);
+  const [creditsLimit, setCreditsLimit] = useState(1);
   const [shouldDisplayCreditInfo, setShouldDisplayCreditInfo] = useState({
     timer: false,
     inPlace: false,
@@ -95,27 +111,58 @@ export default function Page() {
   const [showModal, setShowModal] = useState(false);
   const inputOperatorsRef = useRef(false);
   const [cancelationComment, setCancelationComment] = useState<string | null>(
-    null
+    null,
   );
   const [closeCreditInfo, setCloseCreditInfo] = useState<IClosedCredit>(
-    initialCredicCloseInfo
+    initialCreditCloseInfo,
   );
   const [canSubmitCreditClose, setCanSubmitCreditClose] = useState(false);
-  const [shoudDisplayWarningTextAmount, setShoudDisplayWarningTextAmount] = useState(false)
-  const [amountWarningText, setAmountWarningText] = useState("")
+  const [shoudDisplayWarningTextAmount, setShoudDisplayWarningTextAmount] =
+    useState(false);
+  const [amountWarningText, setAmountWarningText] = useState("");
+  const [invalidCloseDate, SetInvalidCloseDate] = useState(false);
+  const [creditListFilter, setCreditListFilter] = useState("");
+  const [creditId, setCreditId] = useState<string | null>(null);
 
-  const handleRouter = (id: string) => {
-    return router.push(`/credits?requestId=${id}`);
-  };
-  async function getCredits(page: number, limit: number) {
+
+  //end of state
+
+  //begin API calls
+
+  async function getCredits(
+    page: number,
+    limit: number,
+    shouldLoadMore: boolean,
+    shouldDisplayLoading: boolean = false
+  ) {
+    if(shouldDisplayLoading) {
+      setLoadingGlobal(true)
+    }
+    let currentPage = page;
+    if (shouldLoadMore) {
+      currentPage = page + 1;
+      setCreditsPage(currentPage);
+      setLoadingGlobal(true);
+    }
     const req = (await getCreditsPaginated(
-      page,
+      currentPage,
       limit,
-      token as string
+      token as string,
+      {fromDate, toDate}
     )) as Response;
+    setLoadingGlobal(false);
     if (req.state) {
       const data = req.data as CreditList[];
-      setCreditList(data);
+      if (data.length > 0) {
+        if (shouldLoadMore) {
+          setCreditList((prev) => [...data, ...prev]);
+          setCreditListFiltered((prev) => [...data, ...prev]);
+        } else {
+          setCreditList(data);
+          setCreditListFiltered(data);
+        }
+        setCanLoadMore(true);
+      } else setCanLoadMore(false);
     } else {
       handleToast("error", "Hubo un error obteniendo creditos");
     }
@@ -124,11 +171,16 @@ export default function Page() {
     try {
       setLoadingGlobal(true);
       const req = (await getCreditById(creditId, token as string)) as Response;
-      console.log(req);
       if (req.state) {
         const data = req.data as CreditList[];
         setCreditInfo(data[0]);
         setIsEdit(true);
+
+        if (data[0].status === "cobrado") {
+          const creditInfoData = data[0] as any;
+          addCloseCreditInfo(creditInfoData);
+        }
+
         handleShouldDisplayCreditInfo("show", true);
       } else {
         setIsEdit(false);
@@ -147,7 +199,7 @@ export default function Page() {
     const req = (await getOperatorsReqPaginated(
       page,
       limit,
-      token as string
+      token as string,
     )) as Response;
     if (req.state) {
       const data = req.data as UserTemplate[];
@@ -180,13 +232,13 @@ export default function Page() {
     if (req.state) {
       setCreditInfo(initialCreditInfo);
       handleShouldDisplayCreditInfo("hide", false);
-      await getCredits(1, creditsLimit);
+      await getCredits(creditsPage, creditsLimit, false);
       handleToast("success", "Credito asignado correctamente");
     } else {
       handleToast(
         "error",
         req.message ||
-          "Hubo un error, intente más tarde o comunique con administración"
+          "Hubo un error, intente más tarde o comunique con administración",
       );
     }
   }
@@ -194,7 +246,10 @@ export default function Page() {
   async function refreshPage() {
     try {
       setLoadingGlobal(true);
-      await getCredits(creditsPage, creditsLimit);
+      await Promise.all([
+        getCredits(creditsPage, creditsLimit, false),
+        getCreditById(creditId as string, token as string),
+      ]);
     } catch (error) {
     } finally {
       setLoadingGlobal(false);
@@ -207,7 +262,7 @@ export default function Page() {
     const req = (await cancelCreditRequest(
       token as string,
       { comentario: cancelationComment },
-      creditInfo.requestId
+      creditInfo.requestId,
     )) as Response;
     if (req.state) {
       setShowModal(false);
@@ -216,15 +271,66 @@ export default function Page() {
       setIsEdit(false);
       setCreditInfo(initialCreditInfo);
       handleShouldDisplayCreditInfo("hide", false);
-      getCredits(creditsPage, creditsLimit);
+      getCredits(creditsPage, creditsLimit, false);
     } else {
       handleToast(
         "error",
         req.message ??
-          "Hubo un error, intente más tarde o comuniquese con administración"
+          "Hubo un error, intente más tarde o comuniquese con administración",
       );
     }
     setLoadingGlobal(false);
+  }
+
+  async function closeCredit() {
+    if (!canSubmitCreditClose || !isEdit) return;
+    try {
+      setLoadingGlobal(true);
+      const req = (await closeCreditRequest(
+        token as string,
+        closeCreditInfo,
+        creditInfo.requestId,
+      )) as Response;
+      if (req.state) {
+        router.push("/credits");
+        setIsEdit(false);
+        refreshPage();
+        setCloseCreditInfo(initialCreditCloseInfo);
+        handleShouldDisplayCreditInfo("hide", false);
+        handleToast("success", "Se cerró corectamente el crédito");
+      } else {
+        handleToast(
+          "error",
+          req?.message ||
+            "Hubo un error, intente nuevamente o comuniquese con administracion",
+        );
+      }
+    } catch (error) {
+      handleToast(
+        "error",
+        "Hubo un error, intente nuevamente o comuniquese con administracion",
+      );
+    } finally {
+      setLoadingGlobal(false);
+    }
+  }
+
+  //============= end of api calls  ================
+
+  // utils and functions //
+  function addCloseCreditInfo(data: IClosedCredit) {
+    const { credit_delivered, closed_date, receptor, closed_status, comment } =
+      data;
+
+    const closeInfo = {
+      credit_delivered,
+      closed_date,
+      receptor,
+      closed_status,
+      comment,
+    };
+
+    setCloseCreditInfo(closeInfo);
   }
 
   const handleLoadMore = async () => {
@@ -241,8 +347,8 @@ export default function Page() {
     setCreditInfo((prev) => ({ ...prev, operator: val }));
     setOperatorsFiltered(
       operators.filter((i) =>
-        i.fullname.toLocaleLowerCase().includes(val.toLocaleLowerCase())
-      )
+        i.fullname.toLocaleLowerCase().includes(val.toLocaleLowerCase()),
+      ),
     );
     if (val === "") setOperatorsFiltered(operators);
   };
@@ -254,7 +360,7 @@ export default function Page() {
 
   function transformToCurrencyFunc() {
     const currentAmount = transformToCurrency(
-      creditInfo.initial_amount as number
+      creditInfo.initial_amount as number,
     );
     setCreditInfo((prev) => ({ ...prev, initial_amount: currentAmount }));
   }
@@ -267,25 +373,49 @@ export default function Page() {
   }
 
   const handleFinalAmountToDeliver = () => {
-    const deliverAmount = closeCreditInfo?.finalAmount
-      ? parseFloat(closeCreditInfo?.finalAmount as string)
+    const deliverAmount = closeCreditInfo?.credit_delivered
+      ? parseFloat(closeCreditInfo?.credit_delivered as string)
       : 0;
     const finalAmount = creditInfo?.finalAmount;
-    const sfinalAmount = new String(finalAmount)
+    const sFinalAmount = new String(finalAmount)
       .replace("$", "")
       .replace(",", "");
-      if (deliverAmount > parseFloat(sfinalAmount)){
-        setAmountWarningText('La cantidad recibida es mayor');
-      }  else if(deliverAmount < parseFloat(sfinalAmount)) {
-        setAmountWarningText('La cantidad recibida es menor');
-      }
-      if(closeCreditInfo?.finalAmount === "") return (setShoudDisplayWarningTextAmount(false));
-      setShoudDisplayWarningTextAmount(deliverAmount > parseFloat(sfinalAmount) || deliverAmount < parseFloat(sfinalAmount))
+
+    if (deliverAmount > parseFloat(sFinalAmount)) {
+      setAmountWarningText("La cantidad recibida es mayor");
+      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "exceso pago" }));
+    } else if (deliverAmount < parseFloat(sFinalAmount)) {
+      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "incompleto" }));
+      setAmountWarningText("La cantidad recibida es menor, incompleto.");
+    } else if (deliverAmount === parseFloat(sFinalAmount)) {
+      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "completo" }));
+    }
+
+    if (closeCreditInfo?.credit_delivered === "")
+      return setShoudDisplayWarningTextAmount(false);
+    setShoudDisplayWarningTextAmount(
+      deliverAmount > parseFloat(sFinalAmount) ||
+        deliverAmount < parseFloat(sFinalAmount),
+    );
   };
 
-  useEffect(() => {
-    handleFinalAmountToDeliver()
-  },[closeCreditInfo?.finalAmount])
+  function checkCanSubmitCreditClose() {
+    const hasNotEmptyVals = Object.values(closeCreditInfo).every(
+      (v) => v !== "",
+    );
+
+    const currenDate = new Date();
+    currenDate.setHours(0, 0, 0, 0);
+
+    let isFuture = false;
+
+    if (closeCreditInfo.closed_date !== "") {
+      const closeDate = new Date(`${closeCreditInfo.closed_date}`);
+      isFuture = closeDate > currenDate;
+      SetInvalidCloseDate(isFuture);
+    }
+    setCanSubmitCreditClose(hasNotEmptyVals && !isFuture);
+  }
 
   const handleShouldDisplayCreditInfo = (caseType: string, state: boolean) => {
     switch (caseType) {
@@ -308,11 +438,35 @@ export default function Page() {
   };
 
   async function handleRequests() {
-    const [creditsr, operatorsr] = await Promise.all([
-      getCredits(1, creditsLimit),
+    await Promise.all([
+      getCredits(creditsPage, creditsLimit, false),
       getOperators(operatorsPage, operatorslimit),
     ]);
   }
+
+  const shouldDisableCloseCreditInput = () => {
+    return (
+      creditInfo?.status === "disponible" ||
+      creditInfo?.status === "cancelado" ||
+      creditInfo.status === "cobrado"
+    );
+  };
+
+  function handleFilteredCreditList(filterVal: string) {
+    if (filterVal === "") setCreditListFiltered(creditList);
+    else {
+      const filteredValues = creditListFiltered.filter(
+        (item) =>
+          item.operator.includes(filterVal.trim()) ||
+          (item?.finalAmount &&
+            typeof item?.finalAmount === "string" &&
+            item?.finalAmount?.includes(filterVal.trim())) ||
+          item.status.includes(filterVal.trim()),
+      );
+      setCreditListFiltered(filteredValues);
+    }
+  }
+
   // useEffect events
 
   useEffect(() => {
@@ -326,6 +480,7 @@ export default function Page() {
     const requestId = searchParams.get("requestId");
     if (requestId) {
       getCreditInfo(requestId);
+      setCreditId(requestId);
     } else {
       setIsEdit(false);
       handleShouldDisplayCreditInfo("hide", false);
@@ -338,9 +493,18 @@ export default function Page() {
         creditInfo.operator !== "" &&
         creditInfo.initial_amount !== "" &&
         creditInfo.initial_amount !== "$0.00" &&
-        creditInfo.initial_amount !== "0.00"
+        creditInfo.initial_amount !== "0.00",
     );
   }, [creditInfo]);
+
+  useEffect(() => {
+    handleFinalAmountToDeliver();
+    checkCanSubmitCreditClose();
+  }, [closeCreditInfo?.credit_delivered]);
+
+  useEffect(() => {
+    checkCanSubmitCreditClose();
+  }, [closeCreditInfo]);
 
   // rendering components
 
@@ -456,6 +620,7 @@ export default function Page() {
               handleShouldDisplayCreditInfo("hide", false);
               setCreditInfo(initialCreditInfo);
               setIsEdit(false);
+              router.replace('/credits')
             }}
           >
             Cancelar
@@ -531,7 +696,7 @@ export default function Page() {
                   value={
                     creditInfo?.current_amount
                       ? transformToCurrency(creditInfo?.current_amount)
-                      : ""
+                      : transformToCurrency(0)
                   }
                 />
               </div>
@@ -544,7 +709,7 @@ export default function Page() {
                   disabled
                   value={
                     creditInfo?.finalAmount
-                      ? transformToCurrency(creditInfo?.finalAmount)
+                      ? transformToCurrency(creditInfo?.finalAmount as number)
                       : ""
                   }
                 />
@@ -557,9 +722,9 @@ export default function Page() {
                   type="text"
                   disabled
                   value={
-                    creditInfo?.creditCharged
-                      ? transformToCurrency(creditInfo.creditCharged as any)
-                      : ""
+                    creditInfo?.creditUsed
+                      ? transformToCurrency(creditInfo.creditUsed as any)
+                      : transformToCurrency(0)
                   }
                 />
               </div>
@@ -594,105 +759,112 @@ export default function Page() {
                 />
               </div>
             </div>
-            <div className="credit-options-container">
-              <div className="options-header">
-                <label>
-                  {" "}
-                  <b>Cierre de credíto</b>
-                </label>
-              </div>
-              <div className="content">
-                <div className="content-info">
-                  <label>Cantidad Entregada</label>
-                  <input
-                    className="main-input white"
-                    placeholder="$ Cantidad"
-                    disabled={
-                      creditInfo.status === "disponible" ||
-                      creditInfo.status === "cancelado"
-                    }
-                    type="text"
-                    value={closeCreditInfo.finalAmount}
-                    onChange={(e) =>  {
-                      if( !isNaN(e.target?.value as any)) {
-                        setCloseCreditInfo(prev => ({...prev, finalAmount:e.target.value}))
+            {creditInfo?.status == "disponible" ||
+            creditInfo?.status == "cancelado" ? null : (
+              <div className="credit-options-container">
+                <div className="options-header">
+                  <label>
+                    {" "}
+                    <b>
+                      {creditInfo.status === "cobrado"
+                        ? "Información de cierre de crédito"
+                        : "Cerrar Crédito"}
+                    </b>
+                  </label>
+                </div>
+                <div className="content">
+                  <div className="content-info">
+                    <label>Cantidad Entregada</label>
+                    <input
+                      className="main-input white"
+                      placeholder="$ Cantidad"
+                      disabled={shouldDisableCloseCreditInput()}
+                      type="text"
+                      value={closeCreditInfo.credit_delivered}
+                      onChange={(e) => {
+                        if (!isNaN(e.target?.value as any)) {
+                          setCloseCreditInfo((prev) => ({
+                            ...prev,
+                            credit_delivered: e.target.value,
+                          }));
+                        }
+                      }}
+                    />
+                    {shoudDisplayWarningTextAmount && (
+                      <label
+                        style={{ color: "red" }}
+                        className="informative-input-labe"
+                      >
+                        {amountWarningText}
+                      </label>
+                    )}
+                  </div>
+                  <div className="content-info">
+                    <label>Fecha de retiro/cierre</label>
+                    <input
+                      className="main-input white"
+                      type="date"
+                      disabled={shouldDisableCloseCreditInput()}
+                      value={closeCreditInfo.closed_date}
+                      onChange={(e) =>
+                        setCloseCreditInfo((prev) => ({
+                          ...prev,
+                          closed_date: e.target.value,
+                        }))
                       }
-                    }
-                    }
-                  />
-                  {shoudDisplayWarningTextAmount && (
-                    <label className="informative-input-label">
-                      {amountWarningText}
-                    </label>
-                  )}
+                    />
+                    {invalidCloseDate && (
+                      <label
+                        style={{ color: "red" }}
+                        className="informative-input-labe"
+                      >
+                        Fecha invalida!
+                      </label>
+                    )}
+                  </div>
+                  <div className="content-info">
+                    <label>Entrega</label>
+                    <input
+                      className="main-input white"
+                      type="text"
+                      disabled={shouldDisableCloseCreditInput()}
+                      value={closeCreditInfo.receptor}
+                      placeholder="Persona que entrega"
+                      onChange={(e) =>
+                        setCloseCreditInfo((prev) => ({
+                          ...prev,
+                          receptor: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="content-info">
+                    <label>Comentarios</label>
+                    <input
+                      className="main-input white"
+                      type="text"
+                      disabled={shouldDisableCloseCreditInput()}
+                      value={closeCreditInfo.comment}
+                      onChange={(e) =>
+                        setCloseCreditInfo((prev) => ({
+                          ...prev,
+                          comment: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="content-info">
-                  <label>Fecha de retiro/cierre</label>
-                  <input
-                    className="main-input white"
-                    type="date"
-                    disabled={
-                      creditInfo.status === "disponible" ||
-                      creditInfo.status === "cancelado"
-                    }
-                    value={closeCreditInfo.closed_date}
-                    onChange={(e) =>
-                      setCloseCreditInfo((prev) => ({
-                        ...prev,
-                        closed_date: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="content-info">
-                  <label>Entrega</label>
-                  <input
-                    className="main-input white"
-                    type="text"
-                    disabled={
-                      creditInfo.status === "disponible" ||
-                      creditInfo.status === "cancelado"
-                    }
-                    value={closeCreditInfo.receptor}
-                    placeholder="Persona que entrega"
-                    onChange={(e) =>
-                      setCloseCreditInfo((prev) => ({
-                        ...prev,
-                        receptor: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="content-info">
-                  <label>Comentarios</label>
-                  <input
-                    className="main-input white"
-                    type="text"
-                    disabled={
-                      creditInfo.status === "disponible" ||
-                      creditInfo.status === "cancelado"
-                    }
-                    value={closeCreditInfo.receptor}
-                    onChange={(e) =>
-                      setCloseCreditInfo((prev) => ({
-                        ...prev,
-                        receptor: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
+                <button
+                  className="primary-button"
+                  disabled={
+                    shouldDisableCloseCreditInput() || !canSubmitCreditClose
+                  }
+                  onClick={closeCredit}
+                >
+                  Cerrar crédito
+                </button>
               </div>
-              <button
-                className="primary-button"
-                disabled={
-                  creditInfo.status === "disponible" ||
-                  creditInfo.status === "cancelado" ||
-                  !canSubmitCreditClose
-                }
-              >
-                Cerrar crédito
-              </button>
-            </div>
+            )}
           </>
         )}
       </div>
@@ -713,6 +885,7 @@ export default function Page() {
                 handleShouldDisplayCreditInfo("show", true);
                 setIsEdit(false);
                 setCreditInfo(initialCreditInfo);
+                router.replace("/credits");
               }}
             >
               Generar nuevo crédito
@@ -741,7 +914,7 @@ export default function Page() {
                   onChange={(e) => setToDate(e.target.value)}
                 />
               </div>
-              <button className="primary-button" onClick={() => {}}>
+              <button className="primary-button" onClick={() => {getCredits(1, creditsLimit, false, true)}}>
                 Buscar
               </button>
               <label htmlFor="">
@@ -754,6 +927,15 @@ export default function Page() {
               </label>
             </div>
           </div>
+          <input
+            className="filter-input"
+            placeholder="Filtrar por operador o cantidad o estatus"
+            value={creditListFilter}
+            onChange={(e) => {
+              setCreditListFilter(e.target.value);
+              handleFilteredCreditList(e.target.value);
+            }}
+          />
           <div className="table-container">
             <table>
               <thead>
@@ -769,8 +951,8 @@ export default function Page() {
                 </tr>
               </thead>
               <tbody>
-                {creditList.length > 0 ? (
-                  creditList.map((item: CreditList, index: number) => (
+                {creditListFiltered.length > 0 ? (
+                  creditListFiltered.map((item: CreditList, index: number) => (
                     <tr
                       key={item.requestId}
                       className=""
@@ -790,7 +972,9 @@ export default function Page() {
                       <td>{(index = index + 1)}</td>
                       <td className="">{item.createdAt}</td>
                       <td className="">
-                        {transformToCurrency(item.initial_amount as number)}{" "}
+                        {transformToCurrency(
+                          item.initial_amount as number,
+                        )}{" "}
                       </td>
                       <td className="">
                         {transformToCurrency(item.current_amount as number)}
@@ -817,7 +1001,10 @@ export default function Page() {
           </div>
           <div className={"load-more-container"}>
             {canLoadMore ? (
-              <button className={"load-more-button"} onClick={() => {}}>
+              <button
+                className={"load-more-button"}
+                onClick={() => getCredits(creditsPage, creditsLimit, true)}
+              >
                 Cargar mas
               </button>
             ) : null}

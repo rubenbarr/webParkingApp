@@ -61,6 +61,12 @@ align-items: center;
         font-size: 25px;
     }
 
+.secondary-header {
+        color: rgb(100, 100, 100);
+        font-weight: bold;
+        font-size: 20px;
+}
+
 .primary-button {
     background-color: #093f46;
     padding: 5px 15px;
