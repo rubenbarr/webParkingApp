@@ -42,11 +42,12 @@ export default function PayTicketPage() {
   const [hasCredit, setHasCredit] = useState<boolean>(false)
 
   async function getPersonalCreditInfo(shouldLoad:boolean = false){
+    if(shouldLoad) setLoadingGlobal(true);
     const req = await getPersonalCreditInfoRequest(token as string) as Response;
-    if (req.state) 
-    {
-      const info = req.data as ICredit[];
-      setCreditInfo(info[0]);
+    setLoadingGlobal(false);
+    if (req.state) {
+      const info = req.data as ICredit;
+      setCreditInfo(info);
       setHasCredit(true)
     } else {
       setHasCredit(false)
@@ -120,6 +121,10 @@ export default function PayTicketPage() {
 
   useEffect(() => {
     handleRefreshFunctions()
+  },[])
+
+  useEffect(() => {
+    setFilterValues()
   }, [filterValue]);
 
   return (
@@ -127,12 +132,12 @@ export default function PayTicketPage() {
       <div className="main-content">
         <div className="credit-info-content">
           <h1 className="secondary-header">Informacion de credito</h1>
-          { creditInfo ? (
+          { hasCredit ? (
 
-            <div className="">
+            <div className="content">
               <label><b>{'Estatus: '}</b>{creditInfo?.status}</label>
               <label><b>{'$ Credito disponible: '}</b>{creditInfo?.current_amount}</label>
-              <button className="primary-button">Refrescar info</button>
+              <button onClick={()=>getPersonalCreditInfo(true)}  className="primary-button">Refrescar info</button>
             </div>
             ) :
             <div>
