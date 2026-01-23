@@ -74,7 +74,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    console.log(path.split('/'))
       if (userType === 'operador' ) {
         if(! operatorsUrls.includes(path.split('/')[1])) {
           router.replace('/dashboard');

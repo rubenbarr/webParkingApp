@@ -1,8 +1,8 @@
-import { Ticket } from "@/types/ticket";
+import { ITicket } from "@/types/ticket";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface TicketState {
-    list : Ticket[];
+    list : ITicket[];
 }
 
 const initialState: TicketState = {
@@ -13,7 +13,7 @@ const ticketSlice = createSlice({
     name :'tickets',
     initialState,
     reducers:{
-        setTickets: (state, action: PayloadAction<Ticket[]> ) => {
+        setTickets: (state, action: PayloadAction<ITicket[]> ) => {
             state.list = action.payload;
         }
     }

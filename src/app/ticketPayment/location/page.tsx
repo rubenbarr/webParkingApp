@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import "./payticketlocation.scss";
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +12,10 @@ import { Response } from "@/api/usersApi";
 import { getTicketInfoById, payTicket } from "@/api/ticketsApi";
 import cn from "classnames";
 
-import "./payticketlocation.scss";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import CreditInfoComponent from "@/components/CreditInfo/CreditInfo";
+import { fetchCreditInfo } from "@/store/slices/creditSlice";
 
 interface ILocation {
   title: string;
@@ -31,14 +36,27 @@ interface ITicketInfo {
   total_time: string;
 }
 interface Ipayment {
-  bills: Record<number, number>;
-  coins: Record<number, number>;
+  bills: Record<any, any>;
+  coins: Record<any, any>;
 }
 
 export default function PayTicketInLocation() {
+  // global statements/data
+
   const { setLoadingGlobal, token, handleToast } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // end of global statements/data
+
+  // selector data
+
+  const { hasCredit } = useSelector((state: RootState) => state.creditInfo);
+
+  // end selector data
+
+  // initial state
   const initialBillsCoinsInfo = {
     bills: {
       20: 0,
@@ -54,12 +72,13 @@ export default function PayTicketInLocation() {
       5: 0,
       10: 0,
     },
-  }
+  };
   const initialPaymentState = {
     totalPayed: 0,
     totalBills: 0,
     totalCoins: 0,
-  } 
+  };
+  // end initial state
   const [locationInfo, setLocationInfo] = useState<ILocation | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string>("");
@@ -72,6 +91,13 @@ export default function PayTicketInLocation() {
     totalBills: 0,
     totalCoins: 0,
   });
+
+  function refreshCredit() {
+    setLoadingGlobal(true);
+    dispatch(fetchCreditInfo({ token: token as string }))
+      .unwrap()
+      .finally(() => setLoadingGlobal(false));
+  }
 
   const [ticketInfo, setTicketInfo] = useState<ITicketInfo | null>(null);
   const [payment, setPayment] = useState<Ipayment>({
@@ -96,7 +122,7 @@ export default function PayTicketInLocation() {
       setLoadingGlobal(true);
       const req = (await getLocationById(
         token as string,
-        locationId
+        locationId,
       )) as Response;
       if (!req.state) return router.replace("/payTicket");
       const data = req.data as ILocation;
@@ -116,7 +142,7 @@ export default function PayTicketInLocation() {
       const req = (await getTicketInfoById(
         token as string,
         ticketId as string,
-        locationId as string
+        locationId as string,
       )) as Response;
       const data = req.data as ITicketInfo;
       if (!req.state) {
@@ -125,13 +151,13 @@ export default function PayTicketInLocation() {
           "error",
           req.message ||
             req?.error ||
-            "Intenté nuevamente o comuniquese con administración"
+            "Intenté nuevamente o comuniquese con administración",
         );
       } else {
         setShouldDisplayTicketInfo(true);
         setTicketInfo(data);
         if (data.estado === "pendiente") setCanPayTicket(true);
-        else  setCanPayTicket(false)
+        else setCanPayTicket(false);
       }
     } catch (error) {
       handleToast("error", `Hubo un error: ${error}`);
@@ -142,7 +168,6 @@ export default function PayTicketInLocation() {
 
   async function payTicketRequest() {
     if (!canSubmitPayment) return;
-
     const data = {
       amount: ticketInfo?.total_payment,
       paymentData: payment,
@@ -154,18 +179,25 @@ export default function PayTicketInLocation() {
     setTicketId("");
     setPaymentState(initialPaymentState);
     setPayment(initialBillsCoinsInfo);
-    setCanPayTicket(false)
+    setCanPayTicket(false);
     try {
-      const req = await payTicket(token as string, ticketInfo?.ticketId as string, data) as Response;
-      if (!req.state) return handleToast('error', req?.message);
-      handleToast('success', req.message);
+      const req = (await payTicket(
+        token as string,
+        ticketInfo?.ticketId as string,
+        data,
+      )) as Response;
+      if (!req.state) return handleToast("error", req?.message);
+      handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
-    } catch (error:any) {
-      handleToast('error', error?.message || 'Hubo un error, intente más tarde')
+      refreshCredit()
+    } catch (error: any) {
+      handleToast(
+        "error",
+        error?.message || "Hubo un error, intente más tarde",
+      );
     } finally {
       setCanSubmitPayment(true);
       setLoadingGlobal(false);
-
     }
   }
 
@@ -185,32 +217,21 @@ export default function PayTicketInLocation() {
     const totalBills =
       Object.entries(payment["bills"]).reduce(
         (acc, [currency, total]) => acc + Number(currency) * total,
-        0
+        0,
       ) || 0;
     const totalCoins =
       Object.entries(payment["coins"]).reduce(
         (acc, [currency, total]) => acc + Number(currency) * total,
-        0
+        0,
       ) || 0;
 
     const totalPayed = totalBills + totalCoins;
     setPaymentState({ totalPayed, totalBills, totalCoins });
     setCanSubmitPayment(
       totalBills + totalCoins > 0 &&
-        totalBills + totalCoins >= (ticketInfo?.total_payment as number)
+        totalBills + totalCoins >= (ticketInfo?.total_payment as number),
     );
   };
-
-  useEffect(() => {
-    const locationIdP = params.get("id");
-    if (!locationIdP) return router.replace("/payTicket");
-    setLocationId(locationIdP);
-    getLocationInfo(locationIdP as string);
-  }, []);
-
-  useEffect(() => {
-    totalPay();
-  }, [payment]);
 
   const payTicketActions = () => {
     return (
@@ -237,7 +258,7 @@ export default function PayTicketInLocation() {
                 {ticketInfo?.total_payment &&
                 paymentState.totalPayed <= ticketInfo.total_payment
                   ? transformToCurrency(
-                      ticketInfo?.total_payment - paymentState.totalPayed
+                      ticketInfo?.total_payment - paymentState.totalPayed,
                     )
                   : 0}
               </label>
@@ -247,7 +268,7 @@ export default function PayTicketInLocation() {
                 paymentState.totalPayed > 0 &&
                 paymentState.totalPayed > ticketInfo.total_payment
                   ? transformToCurrency(
-                      paymentState.totalPayed - ticketInfo?.total_payment
+                      paymentState.totalPayed - ticketInfo?.total_payment,
                     )
                   : transformToCurrency(0)}
               </label>
@@ -362,7 +383,7 @@ export default function PayTicketInLocation() {
                       bills: {
                         ...prev.bills,
                         500:
-                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                          e.target.value === "" ? 0 : parseInt(e.target.value,10),
                       },
                     }));
                   }}
@@ -544,9 +565,41 @@ export default function PayTicketInLocation() {
     );
   };
 
+  // useEffects
+
+  useEffect(() => {
+    const locationIdP = params.get("id");
+    if (!locationIdP) return router.replace("/payTicket");
+    setLocationId(locationIdP);
+    getLocationInfo(locationIdP as string);
+  }, []);
+
+  useEffect(() => {
+    totalPay();
+  }, [payment]);
+  useEffect(() => {
+    if (!hasCredit) {
+      router.replace("/ticketPayment");
+    }
+  }, [hasCredit]);
+  // ends useEffects
+
+  if (!hasCredit) return null;
   return (
     <>
-      <div className="main-content">
+      <div className="main-content first">
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            background: "white",
+            zIndex: 1,
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          <CreditInfoComponent />
+        </div>
         <div className="header-container">
           <div className="options-header">
             <h1 className="main-header">Pago De ticket</h1>

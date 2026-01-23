@@ -404,6 +404,24 @@ table {
 }
 
 
+.options-header {
+  display: flex;
+  justify-content: flex-end ;
+  > a {
+    color: rgb(6, 6, 138);
+    cursor: pointer;
+    transition: all ease 0.2s;
+    border-radius: 2px;
+    &:hover {
+        text-decoration: underline;
+    }
+    &:active {
+        background-color: rgb(241, 241, 241);
+        transform: translateY(-2px);
+    }
+}
+}
+
 @media (max-width: 1024px ) and (min-width:769px) {
 
   .input-dates-row {

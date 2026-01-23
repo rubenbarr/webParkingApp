@@ -4,6 +4,7 @@ import userReducer from './slices/userSlice';
 import ticketReducer from './slices/ticketSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import locationInfoReducer from './slices/locationInfoSlice';
+import creditInfoReducer from './slices/creditSlice';
 
 export const store = configureStore({
     reducer:{
@@ -11,7 +12,8 @@ export const store = configureStore({
         user: userReducer,
         tickets: ticketReducer,
         dashboard: dashboardReducer,
-        locationInfo: locationInfoReducer
+        locationInfo: locationInfoReducer,
+        creditInfo: creditInfoReducer
     }
 });
 
