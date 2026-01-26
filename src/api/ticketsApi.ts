@@ -14,6 +14,19 @@ export async function getTicketInfoById(token:string, ticketId:string, locationI
         return error;
     }
 }
+
+export async function getTicketsPayedByCredit(token:string, page: number = 1, limit: number = 1) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/getTicketsByCredit?page=${page}&limit=${limit}`, {
+            method:GET,
+            headers: {...headers(token)}
+        });
+        return req;
+    } catch (error) {
+        return error;
+    }
+}
+
 export async function payTicket(token:string, ticketId:string, data:object) {
     try {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/payTicketDashboard/${ticketId}`, {

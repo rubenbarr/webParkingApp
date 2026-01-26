@@ -2,16 +2,15 @@
 import "../payticket.scss";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRightIcon } from "lucide-react";
+import { useRouter, } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getMyLocations } from "@/api/locationApi";
 import { Response } from "@/api/usersApi";
 
 import CreditInfo from "@/components/CreditInfo/CreditInfo";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { ITicket } from "@/types/ticket";
+import { getTicketsPayedByCredit } from "@/api/ticketsApi";
 
 
 
@@ -26,9 +25,14 @@ export default function PayTicketPage() {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
 
-  async function getTicketsPayed(page: number, isDeleted: boolean = false) {
+  const getDate = (date: string) => {
+    // return new Date(date).toLocaleString()
+    return date;
+  };
+
+  async function getTicketsPayed(page: number) {
     setLoadingGlobal(true);
-    const req = (await getMyLocations(
+    const req = (await getTicketsPayedByCredit(
       token as string,
       page,
       limit,
@@ -38,9 +42,6 @@ export default function PayTicketPage() {
       if (req.state) {
         const data = req.data as [];
         if (data.length === 0) {
-          if (isDeleted) {
-            setMyPayments([]);
-          }
           return setCanLoadmore(false);
         }
         if (mypayments?.length === 0) {
@@ -115,9 +116,9 @@ export default function PayTicketPage() {
                     key={index}
                   >
                     <td>{(index += 1)}</td>
-                    <td>{item.gate}</td>
-                    <td>{item.fechaEntrada}</td>
-                    <td>{item.fecha_pago}</td>
+                    <td>{item.gateLabel}</td>
+                    <td>{item.fechaEntrada ? getDate(item.fechaEntrada) : ""}</td>
+                    <td>{item.fechaPago ? getDate(item.fechaPago): ""}</td>
                     <td>{item.montoPagado}</td>
                     <td>{item.totalPayed}</td>
                   </tr>
@@ -149,12 +150,12 @@ export default function PayTicketPage() {
         <div className="options-header">
           <a
             className="content-action"
-            onClick={() => router.push("/ticketPayment/creditReturn")}
+            onClick={() => router.push("/ticketPayment")}
           >
-            Regreso de credito
+            Regresar
           </a>
         </div>
-        <CreditInfo />
+        <CreditInfo shouldDisplayCreditInfo/>
         {myPaymentsList()}
       </div>
     </>

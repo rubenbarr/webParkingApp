@@ -38,8 +38,8 @@ const initial: ICreditInfoState = {
 export const fetchCreditInfo = createAsyncThunk(
   "creditInfo/fetch",
   async (props: IRequestCreditInfoProps) => {
-    const { token } = props;
-    const creditRes = (await getPersonalCreditInfoRequest(token)) as Response;
+    const { token, shouldRequestClosedCredit } = props;
+    const creditRes = (await getPersonalCreditInfoRequest(token, shouldRequestClosedCredit)) as Response;
     return creditRes;
   }
 );

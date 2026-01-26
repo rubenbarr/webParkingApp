@@ -19,7 +19,7 @@ export default function CreditInfoComponent(props: ICreditProps) {
   
   function getPersonalCreditInfo() {
     setLoadingGlobal(true);
-    dispatch(fetchCreditInfo({ token: token as string }))
+    dispatch(fetchCreditInfo({ token: token as string, shouldRequestClosedCredit: props.shouldDisplayCreditInfo }))
       .unwrap()
       .finally(() => setLoadingGlobal(false));
   }

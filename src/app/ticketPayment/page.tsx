@@ -205,7 +205,7 @@ export default function PayTicketPage() {
     <>
       <div className="main-content">
           <div className="options-header">
-            <a className="content-action" onClick={() => router.push('/ticketPayment/creditReturn')}>Regresar</a>
+            <a className="content-action" onClick={() => router.push('/ticketPayment/creditReturn')}>Regreso de credito</a>
           </div>
         <CreditInfo
         />

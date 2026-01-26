@@ -22,9 +22,10 @@ export async function getCreditsPaginated(page:number, limit:number, token:strin
         return error;
     }
 }
-export async function getPersonalCreditInfoRequest(token:string){
+export async function getPersonalCreditInfoRequest(token:string, shouldRequestClosedCredit:boolean = false){
+    console.log(shouldRequestClosedCredit)
     try {
-        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/check`, {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/credits_route/check?checkClosed=${shouldRequestClosedCredit}`, {
             method: GET,
             headers: headers(token), 
         })
