@@ -1,18 +1,18 @@
 "use client";
 import "../payticket.scss";
 
+import cn from "classnames";
 import React, { useEffect, useState } from "react";
-import { useRouter, } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Response } from "@/api/usersApi";
 
 import CreditInfo from "@/components/CreditInfo/CreditInfo";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { ITicket } from "@/types/ticket";
+import { ITicket, IPayment } from "@/types/ticket";
 import { getTicketsPayedByCredit } from "@/api/ticketsApi";
-
-
+import { transformToCurrency } from "@/assets/utils";
 
 export default function PayTicketPage() {
   const { setLoadingGlobal, token, handleToast } = useAuth();
@@ -76,6 +76,52 @@ export default function PayTicketPage() {
     handleRefreshFunctions();
   }, []);
 
+  const renderPaymentData = (data: IPayment) => {
+    const billKeys = Object.keys(data.bills);
+    const coinKeys = Object.keys(data.coins);
+
+    if (!data) return null;
+    return (
+      <td>
+        <table>
+          <thead>
+
+            <tr>
+              <th className="data" colSpan={5}>Billetes</th>
+              <th className="data" colSpan={4}>Monedas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="data">
+              <th> {"$20"}</th>
+              <th> {"$50"}</th>
+              <th> {"$100"}</th>
+              <th> {"$200"}</th>
+              <th> {"$500"}</th>
+              <th> {"$0.5"}</th>
+              <th> {"$1"}</th>
+              <th> {"$2"}</th>
+              <th> {"$5"}</th>
+              <th> {"$10"}</th>
+            </tr>
+            <tr className="data">
+              <td> {data.bills[20]}</td>
+              <td> {data.bills[50]}</td>
+              <td> {data.bills[100]}</td>
+              <td> {data.bills[200]}</td>
+              <td> {data.bills[500]}</td>
+              <td> {data.coins[0.5]}</td>
+              <td> {data.coins[1]}</td>
+              <td> {data.coins[2]}</td>
+              <td> {data.coins[5]}</td>
+              <td> {data.coins[10]}</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    );
+  };
+
   const myPaymentsList = () => {
     return (
       <>
@@ -112,15 +158,24 @@ export default function PayTicketPage() {
                 </tr>
               ) : (
                 mypayments?.map((item, index) => (
-                  <tr
-                    key={index}
-                  >
+                  <tr key={index}>
                     <td>{(index += 1)}</td>
                     <td>{item.gateLabel}</td>
-                    <td>{item.fechaEntrada ? getDate(item.fechaEntrada) : ""}</td>
-                    <td>{item.fechaPago ? getDate(item.fechaPago): ""}</td>
-                    <td>{item.montoPagado}</td>
-                    <td>{item.totalPayed}</td>
+                    <td>
+                      {item.fechaEntrada ? getDate(item.fechaEntrada) : ""}
+                    </td>
+                    <td>{item.fechaPago ? getDate(item.fechaPago) : ""}</td>
+                    <td>
+                      {item.montoPagado
+                        ? transformToCurrency(item.montoPagado)
+                        : "$0.0"}
+                    </td>
+                    <td>
+                      {item.totalPayed
+                        ? transformToCurrency(item.totalPayed)
+                        : "$0.0"}
+                    </td>
+                    {renderPaymentData(item.paymentData)}
                   </tr>
                 ))
               )}
@@ -144,6 +199,43 @@ export default function PayTicketPage() {
     );
   };
 
+  const paymentReturnForm = () => {
+    if (true) return null;
+    return (
+      <div className={"form-container"}>
+        <div className="form-info-header">
+          <h2>Entrega de credito</h2>
+          <p>
+            El credito ya fue cerrado por un administrador, coloca la
+            informacion del cierre del credito, debe ser igual a la que se
+            muestra arriba.
+          </p>
+        </div>
+        <div className="main-content-form">
+          <div className="content-info">
+            <label>Cantidad final entregada</label>
+            <input
+              placeholder="Cantidad entregada"
+              className="main-input white"
+              type="text"
+            />
+          </div>
+          <div className="content-info">
+            <label>Persona que recibe</label>
+            <input
+              placeholder="Recibe"
+              type="text"
+              className="main-input white"
+            />
+          </div>
+        </div>
+        <div className="buttons-container">
+          <button className={cn("primary-button")}>Cerrar credito</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="main-content">
@@ -155,7 +247,8 @@ export default function PayTicketPage() {
             Regresar
           </a>
         </div>
-        <CreditInfo shouldDisplayCreditInfo/>
+        <CreditInfo shouldDisplayCreditInfo />
+        {paymentReturnForm()}
         {myPaymentsList()}
       </div>
     </>

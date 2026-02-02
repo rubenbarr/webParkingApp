@@ -92,7 +92,7 @@ export default function Page() {
   );
   const [creditInfo, setCreditInfo] = useState<CreditList>(initialCreditInfo);
   const [creditsPage, setCreditsPage] = useState(1);
-  const [creditsLimit, setCreditsLimit] = useState(1);
+  const [creditsLimit, setCreditsLimit] = useState(20);
   const [shouldDisplayCreditInfo, setShouldDisplayCreditInfo] = useState({
     timer: false,
     inPlace: false,
@@ -448,7 +448,7 @@ export default function Page() {
     return (
       creditInfo?.status === "disponible" ||
       creditInfo?.status === "cancelado" ||
-      creditInfo.status === "cobrado"
+      creditInfo.status === "cobrado" 
     );
   };
 

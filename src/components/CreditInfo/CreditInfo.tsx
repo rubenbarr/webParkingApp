@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { useAuth } from "@/context/AuthContext";
 import { fetchCreditInfo } from "@/store/slices/creditSlice";
+import { transformToCurrency } from "@/assets/utils";
 
 interface ICreditProps {
   shouldDisplayCreditInfo?: boolean | false;
@@ -30,8 +31,8 @@ export default function CreditInfoComponent(props: ICreditProps) {
 
   return (
     <div className="credit-info-content">
-      <h1 className="secondary-header">Informacion de credito</h1>
-      {hasCredit ? (
+      <h1 className="secondary-header">Informacion de ultimo credito</h1>
+      {hasCredit || props.shouldDisplayCreditInfo ? (
         <div className="content">
           <label>
             <b>{"Estatus: "}</b>
@@ -39,8 +40,44 @@ export default function CreditInfoComponent(props: ICreditProps) {
           </label>
           <label>
             <b>{"$ Credito disponible: "}</b>
-            {creditInfo?.current_amount}
+            {creditInfo?.current_amount ? transformToCurrency(creditInfo?.current_amount) : transformToCurrency(0)}
           </label>
+          {props.shouldDisplayCreditInfo && (
+            <div className="close-credit-information">
+              <label>
+                <b>{"Estatus de cierre: "}</b>
+                {creditInfo?.closed_status}
+              </label>
+              <label>
+                <b>{"Cobrado Por: "}</b>
+                {creditInfo?.chargedBy}
+              </label>
+              <label>
+                <b>{"$ Credito asignado: "}</b>
+                { creditInfo?.initial_amount ? transformToCurrency(creditInfo?.initial_amount) : transformToCurrency(0)}
+              </label>
+              <label>
+                <b>{"$ Credito usado: "}</b>
+                { creditInfo?.finalAmount ? transformToCurrency(creditInfo?.finalAmount) : transformToCurrency(0)}
+              </label>
+              <label>
+                <b>{"Credito entregado: "}</b>
+                {creditInfo?.credit_delivered ? transformToCurrency(creditInfo.credit_delivered) : transformToCurrency(0)}
+              </label>
+              <label>
+                <b>{"Comentario: "}</b>
+                {creditInfo?.comment}
+              </label>
+              <label>
+                <b>{"Fecha de captura: "}</b>
+                {creditInfo?.closed_date}
+              </label>
+              <label>
+                <b>{"Fecha de cierre: "}</b>
+                {creditInfo?.chargeAt}
+              </label>
+            </div>
+          )}
         </div>
       ) : (
         <div className="no-credit">

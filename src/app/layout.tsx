@@ -13,7 +13,7 @@ const poppins = Roboto({
 
 export const metadata: Metadata = {
   title: "Benjy parking Web app",
-  description: " Parking Dashboard",
+  description: " Parking Dashboard"
 };
 
 

@@ -43,7 +43,7 @@ interface Ipayment {
 export default function PayTicketInLocation() {
   // global statements/data
 
-  const { setLoadingGlobal, token, handleToast } = useAuth();
+  const { setLoadingGlobal, token, handleToast, isLoadingGlobal } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -52,7 +52,9 @@ export default function PayTicketInLocation() {
 
   // selector data
 
-  const { hasCredit } = useSelector((state: RootState) => state.creditInfo);
+  const { hasCredit } = useSelector(
+    (state: RootState) => state.creditInfo,
+  );
 
   // end selector data
 
@@ -189,7 +191,7 @@ export default function PayTicketInLocation() {
       if (!req.state) return handleToast("error", req?.message);
       handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
-      refreshCredit()
+      refreshCredit();
     } catch (error: any) {
       handleToast(
         "error",
@@ -383,7 +385,9 @@ export default function PayTicketInLocation() {
                       bills: {
                         ...prev.bills,
                         500:
-                          e.target.value === "" ? 0 : parseInt(e.target.value,10),
+                          e.target.value === ""
+                            ? 0
+                            : parseInt(e.target.value, 10),
                       },
                     }));
                   }}
@@ -569,7 +573,9 @@ export default function PayTicketInLocation() {
 
   useEffect(() => {
     const locationIdP = params.get("id");
-    if (!locationIdP) return router.replace("/payTicket");
+
+    if (!locationIdP) return router.replace("/ticketPayment");
+
     setLocationId(locationIdP);
     getLocationInfo(locationIdP as string);
   }, []);
@@ -577,14 +583,16 @@ export default function PayTicketInLocation() {
   useEffect(() => {
     totalPay();
   }, [payment]);
+
   useEffect(() => {
-    if (!hasCredit) {
-      router.replace("/ticketPayment");
-    }
-  }, [hasCredit]);
+    if(isLoadingGlobal) {
+      if(!hasCredit) return router.replace('/ticketPayment')
+      }
+  }, [hasCredit, isLoadingGlobal]);
+  console.log(isLoadingGlobal)
+
   // ends useEffects
 
-  if (!hasCredit) return null;
   return (
     <>
       <div className="main-content first">
@@ -600,6 +608,8 @@ export default function PayTicketInLocation() {
         >
           <CreditInfoComponent />
         </div>
+      { hasCredit && (
+        <>
         <div className="header-container">
           <div className="options-header">
             <h1 className="main-header">Pago De ticket</h1>
@@ -634,7 +644,7 @@ export default function PayTicketInLocation() {
             onChange={(e) => {
               setTicketId(e.target.value);
             }}
-          />
+            />
           <div className="trash-icon-container" onClick={() => setTicketId("")}>
             <TrashIcon />
           </div>
@@ -644,6 +654,8 @@ export default function PayTicketInLocation() {
         </div>
         {payTicketInfoContainer()}
         {payTicketActions()}
+        </>
+        )}
       </div>
     </>
   );
