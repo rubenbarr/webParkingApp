@@ -242,6 +242,8 @@ export default function PayTicketPage() {
                 <th className="">$Monto inicial</th>
                 <th className="">$Monto Final</th>
                 <th className="">$Total Entregado</th>
+                <th className="">$Cambio inicial</th>
+                <th className="">$Cambio final</th>
                 <th className="">$Fecha de cierre</th>
               </tr>
             </thead>
@@ -271,6 +273,8 @@ export default function PayTicketPage() {
                     <td>{item.initial_amount ?  transformToCurrency(item.initial_amount): "$0.0"}</td>
                     <td>{item.finalAmount ?  transformToCurrency(item.finalAmount): "$0.0"}</td>
                     <td>{item.credit_delivered ?  transformToCurrency(item.credit_delivered): "$0.0"}</td>
+                    <td>{item.initial_change ?  transformToCurrency(item.initial_change): "$0.0"}</td>
+                    <td>{item.current_change ?  transformToCurrency(item.current_change): "$0.0"}</td>
                     <td>{item.chargeAt}</td>
                   </tr>
                 ))

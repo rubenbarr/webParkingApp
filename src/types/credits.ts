@@ -14,4 +14,7 @@ export interface ICredit {
   chargeAt: string;
   createdAt: string;
   createdBy: string;
+  initial_change: number;
+  current_change: number;
+  change_delivered: number;
 }

@@ -32,5 +32,11 @@ export interface ITicket {
   paidBy: string;
   paymentData: IPayment;
   ticketId: string;
-  totalPayed: number;
+  total_payment: number;
+  tolerancia: boolean;
+  tiempo_restante:number;
+  totalPayed:number;
+  total_time:number;
+  repago:boolean;
+  nuevaCantidadPago: number;
 }

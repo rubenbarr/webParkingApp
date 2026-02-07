@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import CreditInfoComponent from "@/components/CreditInfo/CreditInfo";
 import { fetchCreditInfo } from "@/store/slices/creditSlice";
+import { ITicket } from "@/types/ticket";
 
 interface ILocation {
   title: string;
@@ -27,14 +28,7 @@ interface ILocation {
   totalKioscos?: number;
 }
 
-interface ITicketInfo {
-  ticketId: string;
-  estado: string;
-  fecha_entrada: string;
-  total_payment: number;
-  fechaPago: string | boolean;
-  total_time: string;
-}
+
 interface Ipayment {
   bills: Record<any, any>;
   coins: Record<any, any>;
@@ -52,7 +46,7 @@ export default function PayTicketInLocation() {
 
   // selector data
 
-  const { hasCredit } = useSelector(
+  const { hasCredit, isLoading, hasFetched } = useSelector(
     (state: RootState) => state.creditInfo,
   );
 
@@ -101,7 +95,7 @@ export default function PayTicketInLocation() {
       .finally(() => setLoadingGlobal(false));
   }
 
-  const [ticketInfo, setTicketInfo] = useState<ITicketInfo | null>(null);
+  const [ticketInfo, setTicketInfo] = useState<ITicket | null>(null);
   const [payment, setPayment] = useState<Ipayment>({
     bills: {
       20: 0,
@@ -146,7 +140,7 @@ export default function PayTicketInLocation() {
         ticketId as string,
         locationId as string,
       )) as Response;
-      const data = req.data as ITicketInfo;
+      const data = req.data as ITicket;
       if (!req.state) {
         setShouldDisplayTicketInfo(false);
         handleToast(
@@ -200,6 +194,7 @@ export default function PayTicketInLocation() {
     } finally {
       setCanSubmitPayment(true);
       setLoadingGlobal(false);
+      refreshCredit();
     }
   }
 
@@ -211,7 +206,16 @@ export default function PayTicketInLocation() {
   const transformToCurrency = (value: number) => formatToCurrency.format(value);
 
   const transformDate = (date: string) => {
-    const newDate = new Date(date).toLocaleString();
+    const newDate = new Date(date).toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
     return newDate;
   };
 
@@ -532,6 +536,7 @@ export default function PayTicketInLocation() {
                 <b>Información de ticket</b>
               </label>
               <div className="ticket-info-container">
+                { ticketInfo?.tolerancia &&  <label>{`Ticket con tiempo de tolerancia, tiempo:  ${ticketInfo?.tiempo_restante} min` }</label>}
                 <p className="info-content">
                   <b>{"Estado: "}</b>
                   <label>{ticketInfo?.estado}</label>
@@ -539,8 +544,8 @@ export default function PayTicketInLocation() {
                 <p className="info-content">
                   <b>{"Fecha de entrada: "}</b>{" "}
                   <label>
-                    {ticketInfo?.fecha_entrada &&
-                      transformDate(ticketInfo?.fecha_entrada)}
+                    {ticketInfo?.fechaEntrada &&
+                      transformDate(ticketInfo?.fechaEntrada)}
                   </label>
                 </p>
                 <p className="info-content">
@@ -573,9 +578,7 @@ export default function PayTicketInLocation() {
 
   useEffect(() => {
     const locationIdP = params.get("id");
-
     if (!locationIdP) return router.replace("/ticketPayment");
-
     setLocationId(locationIdP);
     getLocationInfo(locationIdP as string);
   }, []);
@@ -585,11 +588,10 @@ export default function PayTicketInLocation() {
   }, [payment]);
 
   useEffect(() => {
-    if(isLoadingGlobal) {
-      if(!hasCredit) return router.replace('/ticketPayment')
-      }
-  }, [hasCredit, isLoadingGlobal]);
-  console.log(isLoadingGlobal)
+    if(!isLoading && !hasCredit && hasFetched) {
+      router.replace("/ticketPayment")
+    }
+  }, [isLoading, hasCredit]);
 
   // ends useEffects
 

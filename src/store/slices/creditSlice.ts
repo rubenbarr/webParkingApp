@@ -9,6 +9,7 @@ interface ICreditInfoState {
   isLoading: boolean;
   error: Error;
   userCredits: ICredit[]
+  hasFetched: boolean;
 }
 
 interface IRequestCreditInfoProps {
@@ -29,6 +30,7 @@ const initial: ICreditInfoState = {
   creditInfo: null,
   hasCredit: false,
   isLoading: false,
+  hasFetched:false,
   error: {
     message: null,
     state: false,
@@ -67,7 +69,6 @@ const CreditInfoSlice = createSlice({
       state.isLoading = true;
     })
     .addCase(fetchCreditInfo.fulfilled, (state, action) => {
-      state.isLoading = false;
       if (action.payload.state) {
         state.creditInfo = action.payload.data as ICredit;
         if (state.creditInfo.status === "activo" || state.creditInfo.status === "disponible" ) {
@@ -82,11 +83,14 @@ const CreditInfoSlice = createSlice({
         "Hubo un error obteniendo informacion de credito, intentelo nuevamente o  comuniquese con administracion";
         state.hasCredit = false;
       }
+      state.isLoading = false;
+      state.hasFetched = true;
     })
     .addCase(fetchCreditInfo.rejected, (state) => {
       state.hasCredit = false;
       state.isLoading = false;
       state.error.state = true;
+      state.hasFetched = true;
       state.error.message =
       "Hubo un error obteniendo informacion de credito, intentelo nuevamente o  comuniquese con administracion";
     })

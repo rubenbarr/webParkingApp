@@ -15,9 +15,10 @@ export async function getTicketInfoById(token:string, ticketId:string, locationI
     }
 }
 
-export async function getTicketsPayedByCredit(token:string, page: number = 1, limit: number = 1) {
+export async function getTicketsPayedByCredit(token:string, page: number = 1, limit: number = 1, creditId: string | null = null) {
+    const creditQuery = creditId ?  `&creditId=${creditId}` : null
     try {
-        const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/getTicketsByCredit?page=${page}&limit=${limit}`, {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/getTicketsByCredit?page=${page}&limit=${limit}${creditQuery}`, {
             method:GET,
             headers: {...headers(token)}
         });

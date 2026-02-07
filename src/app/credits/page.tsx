@@ -30,6 +30,9 @@ interface CreditList {
   updatedAt: string;
   userId: string;
   creditUsed?: string;
+  initial_change?: string | number | null;
+  current_change ?: number | null;
+  change_delivered ? : number | null;
 }
 
 interface IOperator {
@@ -43,6 +46,7 @@ interface IClosedCredit {
   receptor: string;
   closed_status: string;
   comment: string;
+  change_delivered: string;
 }
 
 export default function Page() {
@@ -53,6 +57,7 @@ export default function Page() {
     current_amount: null,
     finalAmount: null,
     initial_amount: null,
+    initial_change: null,
     operator: "",
     requestId: "",
     status: "",
@@ -67,6 +72,7 @@ export default function Page() {
     receptor: "",
     closed_status: "",
     comment: "",
+    change_delivered: ""
   };
 
   //initial states END
@@ -117,13 +123,12 @@ export default function Page() {
     initialCreditCloseInfo,
   );
   const [canSubmitCreditClose, setCanSubmitCreditClose] = useState(false);
-  const [shoudDisplayWarningTextAmount, setShoudDisplayWarningTextAmount] =
+  const [shouldDisplayWarningTextAmount, setShouldDisplayWarningTextAmount] =
     useState(false);
   const [amountWarningText, setAmountWarningText] = useState("");
   const [invalidCloseDate, SetInvalidCloseDate] = useState(false);
   const [creditListFilter, setCreditListFilter] = useState("");
   const [creditId, setCreditId] = useState<string | null>(null);
-
 
   //end of state
 
@@ -133,10 +138,10 @@ export default function Page() {
     page: number,
     limit: number,
     shouldLoadMore: boolean,
-    shouldDisplayLoading: boolean = false
+    shouldDisplayLoading: boolean = false,
   ) {
-    if(shouldDisplayLoading) {
-      setLoadingGlobal(true)
+    if (shouldDisplayLoading) {
+      setLoadingGlobal(true);
     }
     let currentPage = page;
     if (shouldLoadMore) {
@@ -148,7 +153,7 @@ export default function Page() {
       currentPage,
       limit,
       token as string,
-      {fromDate, toDate}
+      { fromDate, toDate },
     )) as Response;
     setLoadingGlobal(false);
     if (req.state) {
@@ -176,11 +181,8 @@ export default function Page() {
         setCreditInfo(data[0]);
         setIsEdit(true);
 
-        if (data[0].status === "cobrado") {
-          const creditInfoData = data[0] as any;
-          addCloseCreditInfo(creditInfoData);
-        }
-
+        const creditInfoData = data[0] as any;
+        addCloseCreditInfo(creditInfoData, data[0].status);
         handleShouldDisplayCreditInfo("show", true);
       } else {
         setIsEdit(false);
@@ -223,9 +225,13 @@ export default function Page() {
     if (!canSubmitCredit) return;
     setLoadingGlobal(true);
     const currentAmount = creditInfo.initial_amount as string;
+    const initial_change = creditInfo?.initial_change as unknown as string;
     const newData = {
       userId: creditInfo.userId,
       amount: parseFloat(currentAmount.replace("$", "").replace(",", "")),
+      initial_change: parseFloat(
+        initial_change.replace("$", "").replace(",", ""),
+      ),
     };
     const req = (await addCreditRequest(token as string, newData)) as Response;
     setLoadingGlobal(false);
@@ -318,19 +324,25 @@ export default function Page() {
   //============= end of api calls  ================
 
   // utils and functions //
-  function addCloseCreditInfo(data: IClosedCredit) {
-    const { credit_delivered, closed_date, receptor, closed_status, comment } =
+  function addCloseCreditInfo(data: IClosedCredit, status:string) {
+    if (status === 'cobrado') {
+
+      const { credit_delivered, closed_date, receptor, closed_status, comment, change_delivered } =
       data;
-
-    const closeInfo = {
-      credit_delivered,
-      closed_date,
-      receptor,
-      closed_status,
-      comment,
-    };
-
-    setCloseCreditInfo(closeInfo);
+      
+      const closeInfo = {
+        credit_delivered,
+        closed_date,
+        receptor,
+        closed_status,
+        comment,
+        change_delivered,
+      };
+      
+      setCloseCreditInfo(closeInfo as IClosedCredit);
+    } else {
+      setCloseCreditInfo(initialCreditCloseInfo)
+    }
   }
 
   const handleLoadMore = async () => {
@@ -353,26 +365,25 @@ export default function Page() {
     if (val === "") setOperatorsFiltered(operators);
   };
 
-  const handleCreditAmountInput = (val: string) => {
+  const handleCreditAmountInput = (val: string, key: keyof CreditList) => {
     if (isNaN(val as any)) return;
-    setCreditInfo((prev) => ({ ...prev, initial_amount: val }));
+    setCreditInfo((prev) => ({ ...prev, [key]: val }));
   };
 
-  function transformToCurrencyFunc() {
-    const currentAmount = transformToCurrency(
-      creditInfo.initial_amount as number,
-    );
-    setCreditInfo((prev) => ({ ...prev, initial_amount: currentAmount }));
+  function transformToCurrencyFunc(key: keyof CreditList) {
+    const currentAmount = transformToCurrency(creditInfo[key] as number);
+    setCreditInfo((prev) => ({ ...prev, [key]: currentAmount }));
   }
 
-  function transformBackCurrency() {
-    const initial = creditInfo.initial_amount as string;
+  function transformBackCurrency(key: keyof CreditList) {
+    const initial = creditInfo[key] as string;
     if (initial === "" || !initial) return;
     const transform = initial.replace("$", "").replace(",", "");
-    setCreditInfo((prev) => ({ ...prev, initial_amount: transform }));
+    setCreditInfo((prev) => ({ ...prev, [key]: transform }));
   }
 
   const handleFinalAmountToDeliver = () => {
+
     const deliverAmount = closeCreditInfo?.credit_delivered
       ? parseFloat(closeCreditInfo?.credit_delivered as string)
       : 0;
@@ -380,23 +391,43 @@ export default function Page() {
     const sFinalAmount = new String(finalAmount)
       .replace("$", "")
       .replace(",", "");
+      const sCurrentCreditUsed = new String(creditInfo.current_amount)
+      .replace("$", "")
+      .replace(",","")
 
-    if (deliverAmount > parseFloat(sFinalAmount)) {
-      setAmountWarningText("La cantidad recibida es mayor");
-      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "exceso pago" }));
-    } else if (deliverAmount < parseFloat(sFinalAmount)) {
-      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "incompleto" }));
-      setAmountWarningText("La cantidad recibida es menor, incompleto.");
-    } else if (deliverAmount === parseFloat(sFinalAmount)) {
-      setCloseCreditInfo((prev) => ({ ...prev, closed_status: "completo" }));
+    
+    if (closeCreditInfo?.credit_delivered === "") return setShouldDisplayWarningTextAmount(false);
+    else {
+      if(creditInfo.status === 'cerrado') {
+        if (deliverAmount > parseFloat(sFinalAmount)) {
+          setAmountWarningText("La cantidad recibida es mayor");
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "exceso pago" }));
+        } else if (deliverAmount < parseFloat(sFinalAmount)) {
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "incompleto" }));
+          setAmountWarningText("La cantidad recibida es menor, incompleto.");
+        } else if (deliverAmount === parseFloat(sFinalAmount)) {
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "completo" }));
+        }
+        setShouldDisplayWarningTextAmount(
+          deliverAmount > parseFloat(sFinalAmount) ||
+          deliverAmount < parseFloat(sFinalAmount),
+        );
+      } else {
+        if (deliverAmount > parseFloat(sCurrentCreditUsed)) {
+          setAmountWarningText("La cantidad recibida es mayor");
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "exceso pago" }));
+        } else if (deliverAmount < parseFloat(sCurrentCreditUsed)) {
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "incompleto" }));
+          setAmountWarningText("La cantidad recibida es menor, incompleto.");
+        } else if (deliverAmount === parseFloat(sCurrentCreditUsed)) {
+          setCloseCreditInfo((prev) => ({ ...prev, closed_status: "completo" }));
+        }
+        setShouldDisplayWarningTextAmount(
+        deliverAmount > parseFloat(sCurrentCreditUsed) ||
+        deliverAmount < parseFloat(sCurrentCreditUsed),
+        );
+      }
     }
-
-    if (closeCreditInfo?.credit_delivered === "")
-      return setShoudDisplayWarningTextAmount(false);
-    setShoudDisplayWarningTextAmount(
-      deliverAmount > parseFloat(sFinalAmount) ||
-        deliverAmount < parseFloat(sFinalAmount),
-    );
   };
 
   function checkCanSubmitCreditClose() {
@@ -448,7 +479,7 @@ export default function Page() {
     return (
       creditInfo?.status === "disponible" ||
       creditInfo?.status === "cancelado" ||
-      creditInfo.status === "cobrado" 
+      creditInfo.status === "cobrado"
     );
   };
 
@@ -493,7 +524,10 @@ export default function Page() {
         creditInfo.operator !== "" &&
         creditInfo.initial_amount !== "" &&
         creditInfo.initial_amount !== "$0.00" &&
-        creditInfo.initial_amount !== "0.00",
+        creditInfo.initial_amount !== "0.00" &&
+        creditInfo.initial_change !== "" &&
+        creditInfo.initial_change !== "$0.00" &&
+        creditInfo.initial_change !== "0.00",
     );
   }, [creditInfo]);
 
@@ -620,7 +654,7 @@ export default function Page() {
               handleShouldDisplayCreditInfo("hide", false);
               setCreditInfo(initialCreditInfo);
               setIsEdit(false);
-              router.replace('/credits')
+              router.replace("/credits");
             }}
           >
             Cancelar
@@ -677,9 +711,26 @@ export default function Page() {
               type="text"
               className="main-input white"
               value={creditInfo.initial_amount ?? ""}
-              onChange={(e) => handleCreditAmountInput(e.target.value)}
-              onBlur={() => transformToCurrencyFunc()}
-              onFocus={() => transformBackCurrency()}
+              onChange={(e) =>
+                handleCreditAmountInput(e.target.value, "initial_amount")
+              }
+              onBlur={() => transformToCurrencyFunc("initial_amount")}
+              onFocus={() => transformBackCurrency("initial_amount")}
+            />
+          </div>
+          <div className="content-info">
+            <label>$ Cambio Asignado</label>
+            <input
+              disabled={isEdit}
+              placeholder="$ cantidad de crédito"
+              type="text"
+              className="main-input white"
+              value={creditInfo.initial_change ?? ""}
+              onChange={(e) =>
+                handleCreditAmountInput(e.target.value, "initial_change")
+              }
+              onBlur={() => transformToCurrencyFunc("initial_change")}
+              onFocus={() => transformBackCurrency("initial_change")}
             />
           </div>
         </div>
@@ -739,6 +790,16 @@ export default function Page() {
                 />
               </div>
               <div className="content-info">
+                <label>Cambio usado</label>
+                <input
+                  placeholder=""
+                  className="main-input white"
+                  type="text"
+                  disabled
+                  value={ creditInfo.current_change ? transformToCurrency(creditInfo?.current_change as number) : "$0.0"}
+                />
+              </div>
+              <div className="content-info">
                 <label>Creado Por</label>
                 <input
                   placeholder=""
@@ -790,7 +851,7 @@ export default function Page() {
                         }
                       }}
                     />
-                    {shoudDisplayWarningTextAmount && (
+                    {shouldDisplayWarningTextAmount && (
                       <label
                         style={{ color: "red" }}
                         className="informative-input-labe"
@@ -821,6 +882,22 @@ export default function Page() {
                         Fecha invalida!
                       </label>
                     )}
+                  </div>
+                  <div className="content-info">
+                    <label>Cambio Entregado</label>
+                    <input
+                      className="main-input white"
+                      type="text"
+                      disabled={shouldDisableCloseCreditInput()}
+                      value={closeCreditInfo.change_delivered}
+                      placeholder="$ entregado"
+                      onChange={(e) =>
+                        !isNaN(e.target.value as any) && setCloseCreditInfo((prev) => ({
+                          ...prev,
+                          change_delivered: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
                   <div className="content-info">
                     <label>Entrega</label>
@@ -914,7 +991,12 @@ export default function Page() {
                   onChange={(e) => setToDate(e.target.value)}
                 />
               </div>
-              <button className="primary-button" onClick={() => {getCredits(1, creditsLimit, false, true)}}>
+              <button
+                className="primary-button"
+                onClick={() => {
+                  getCredits(1, creditsLimit, false, true);
+                }}
+              >
                 Buscar
               </button>
               <label htmlFor="">
@@ -945,6 +1027,9 @@ export default function Page() {
                   <th className="">$ Inicial</th>
                   <th className="">$ Restante</th>
                   <th className="">$ final</th>
+                  <th className="">Cambio asignado</th>
+                  <th className="">Cambio Disponible</th>
+                  <th className="">Cambio Entregado</th>
                   <th className="">Operador</th>
                   <th className="">estatus</th>
                   <th className="">Creado Por</th>
@@ -982,6 +1067,21 @@ export default function Page() {
                       <td className="">
                         {item.finalAmount
                           ? transformToCurrency(item?.finalAmount as number)
+                          : ""}
+                      </td>
+                      <td className="">
+                        {item.initial_change
+                          ? transformToCurrency(item?.initial_change as number)
+                          : ""}
+                      </td>
+                      <td className="">
+                        {item.current_change
+                          ? transformToCurrency(item?.current_change as number)
+                          : ""}
+                      </td>
+                      <td className="">
+                        {item.change_delivered
+                          ? transformToCurrency(item?.change_delivered as number)
                           : ""}
                       </td>
                       <td className="">{item.operator}</td>

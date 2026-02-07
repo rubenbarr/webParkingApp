@@ -579,7 +579,8 @@ export default function PayTicketInLocation() {
             className="filter-input"
             value={ticketId}
             onChange={(e) => {
-              setTicketId(e.target.value);
+            const formattedValue = e.target.value.replace(/'/g, "-");
+              setTicketId(formattedValue);
             }}
           />
           <div className="trash-icon-container" onClick={() => setTicketId("")}>

@@ -77,9 +77,6 @@ export default function PayTicketPage() {
   }, []);
 
   const renderPaymentData = (data: IPayment) => {
-    const billKeys = Object.keys(data.bills);
-    const coinKeys = Object.keys(data.coins);
-
     if (!data) return null;
     return (
       <td>

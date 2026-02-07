@@ -42,6 +42,10 @@ export default function CreditInfoComponent(props: ICreditProps) {
             <b>{"$ Credito disponible: "}</b>
             {creditInfo?.current_amount ? transformToCurrency(creditInfo?.current_amount) : transformToCurrency(0)}
           </label>
+          <label>
+            <b>{"$ Cambio Disponible: "}</b>
+            {creditInfo?.current_change ? transformToCurrency(creditInfo?.current_change) : transformToCurrency(0)}
+          </label>
           {props.shouldDisplayCreditInfo && (
             <div className="close-credit-information">
               <label>
