@@ -14,7 +14,7 @@ export interface IPayment {
     "5": number;
   };
 }
-interface IDataPayment {
+export interface IDataPayment {
   amount: number;
   change: number;
   fechaPago: string;

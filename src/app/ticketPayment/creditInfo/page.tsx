@@ -4,7 +4,7 @@ import { Response } from '@/api/usersApi';
 import { transformToCurrency } from '@/assets/utils';
 import CreditInfoComponent from '@/components/CreditInfo/CreditInfo'
 import { useAuth } from '@/context/AuthContext';
-import { IPayment, ITicket } from '@/types/ticket';
+import { IDataPayment, IPayment, ITicket } from '@/types/ticket';
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -22,7 +22,7 @@ export default function Page() {
   const [creditId, setCreditId] = useState<string | null>( )
   
   const getDate = (date: string) => {
-    // return new Date(date).toLocaleString()
+    return new Date(date).toLocaleString()
     return date;
   };
     async function getTicketsPayed(page: number, credit: string) {
@@ -123,7 +123,7 @@ export default function Page() {
               crédito
             </label>
           </div>
-          <button className="primary-button">Refrescar</button>
+          <button className="primary-button" onClick={()=> getTicketsPayed(1, creditId as string)}>Refrescar</button>
   
           <div className="table-container">
             <table>
@@ -133,42 +133,44 @@ export default function Page() {
                   <th className="">Puerta/Entrada</th>
                   <th className="">Fecha/Entrada</th>
                   <th className="">Fecha/Pago</th>
-                  <th className="">Monto Total</th>
                   <th className="">TotalPagado</th>
-                  <th className="">Informacion de pago </th>
+                  <th className="">Total de cobros</th>
+                  <th>Coche dentro</th>
+                  <th>Fecha de salida</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingData ? (
                   <tr>
-                    <td colSpan={7}>Cargando datos...</td>{" "}
+                    <td colSpan={5}>Cargando datos...</td>{" "}
                   </tr>
                 ) : mypayments?.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>Sin datos</td>
+                    <td colSpan={5}>Sin datos</td>
                   </tr>
                 ) : (
-                  mypayments?.map((item, index) => (
+                  mypayments?.map((item, index) => {
+                    const dataPayment = item?.dataPayment || [] as IDataPayment[];
+                    const lastItem = dataPayment.length === 0 ? null : dataPayment[dataPayment.length -1];
+                    const fechaPago = lastItem ? getDate(lastItem.fechaPago) : ""
+                    const montoTotalPagado = lastItem ? dataPayment.reduce((acc, currentVal ) => acc += currentVal.amount, 0) : 0
+                    return (
                     <tr key={index}>
                       <td>{(index += 1)}</td>
                       <td>{item.gateLabel}</td>
                       <td>
                         {item.fechaEntrada ? getDate(item.fechaEntrada) : ""}
                       </td>
-                      <td>{item.fechaPago ? getDate(item.fechaPago) : ""}</td>
+                      <td>{fechaPago }</td>
                       <td>
-                        {item.montoPagado
-                          ? transformToCurrency(item.montoPagado)
-                          : "$0.0"}
+                         {transformToCurrency(montoTotalPagado)}
                       </td>
-                      <td>
-                        {item.totalPayed
-                          ? transformToCurrency(item.totalPayed)
-                          : "$0.0"}
-                      </td>
-                      {renderPaymentData(item.paymentData)}
+                      <td>{dataPayment.length}</td>
+                      <td>{item.cocheDentro ? "Si" : "No"}</td>
+                      <td>{item?.fechaSalida || ""}</td>
                     </tr>
-                  ))
+                  )
+                  })
                 )}
               </tbody>
             </table>

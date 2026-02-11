@@ -525,9 +525,12 @@ export default function PayTicketInLocation() {
   };
 
   const messageLabel = () => {
+    if(!ticketInfo?.cocheDentro) return (
+      <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida &&  "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
+    )
     if (ticketInfo?.tolerancia) {
       return (
-        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante} min`}</label>
+        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
       );
     }
     if (ticketInfo?.repago) {
@@ -583,7 +586,7 @@ export default function PayTicketInLocation() {
                     </label>
                   </p>
                 </div>
-                <div className="ticket-payment-Info">
+                { ticketInfo?.estado === "pagado" &&                <div className="ticket-payment-Info">
                   <label htmlFor="">Informacion de ultimo pago</label>
                   <p className="info-content"> 
                   <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
@@ -606,7 +609,7 @@ export default function PayTicketInLocation() {
                       </p>
                     </div>
                   ))}
-                </div>
+                </div>}
               </div>
             </div>
           )}

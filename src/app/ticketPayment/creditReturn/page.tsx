@@ -161,18 +161,6 @@ export default function PayTicketPage() {
                     <td>
                       {item.fechaEntrada ? getDate(item.fechaEntrada) : ""}
                     </td>
-                    <td>{item.fechaPago ? getDate(item.fechaPago) : ""}</td>
-                    <td>
-                      {item.montoPagado
-                        ? transformToCurrency(item.montoPagado)
-                        : "$0.0"}
-                    </td>
-                    <td>
-                      {item.totalPayed
-                        ? transformToCurrency(item.totalPayed)
-                        : "$0.0"}
-                    </td>
-                    {renderPaymentData(item.paymentData)}
                   </tr>
                 ))
               )}
