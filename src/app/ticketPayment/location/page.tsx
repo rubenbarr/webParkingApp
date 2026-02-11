@@ -28,7 +28,6 @@ interface ILocation {
   totalKioscos?: number;
 }
 
-
 interface Ipayment {
   bills: Record<any, any>;
   coins: Record<any, any>;
@@ -152,7 +151,7 @@ export default function PayTicketInLocation() {
       } else {
         setShouldDisplayTicketInfo(true);
         setTicketInfo(data);
-        if (data.estado === "pendiente") setCanPayTicket(true);
+        if (data.estado === "pendiente" || data.repago) setCanPayTicket(true);
         else setCanPayTicket(false);
       }
     } catch (error) {
@@ -165,10 +164,10 @@ export default function PayTicketInLocation() {
   async function payTicketRequest() {
     if (!canSubmitPayment) return;
     const data = {
-      amount: ticketInfo?.total_payment,
+      amount: ticketInfo?.total_a_pagar,
       paymentData: payment,
       totalPayed: paymentState.totalPayed,
-      change: paymentState.totalPayed - (ticketInfo?.total_payment as number),
+      change: paymentState.totalPayed - (ticketInfo?.total_a_pagar as number),
     };
     setCanSubmitPayment(false);
     setLoadingGlobal(true);
@@ -192,6 +191,7 @@ export default function PayTicketInLocation() {
         error?.message || "Hubo un error, intente más tarde",
       );
     } finally {
+      setShouldDisplayTicketInfo(false);
       setCanSubmitPayment(true);
       setLoadingGlobal(false);
       refreshCredit();
@@ -207,15 +207,15 @@ export default function PayTicketInLocation() {
 
   const transformDate = (date: string) => {
     const newDate = new Date(date).toLocaleString("es-MX", {
-    timeZone: "America/Mexico_City",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
     return newDate;
   };
 
@@ -242,7 +242,7 @@ export default function PayTicketInLocation() {
   const payTicketActions = () => {
     return (
       shouldDisplayTicketInfo &&
-      canPayTicket && (
+      canPayTicket &&  (
         <div className="payment-content">
           <div className="header-payment-content">
             <label>
@@ -270,11 +270,11 @@ export default function PayTicketInLocation() {
               </label>
               <label>
                 <b>Cambio: </b>
-                {ticketInfo?.total_payment &&
+                {ticketInfo?.total_a_pagar &&
                 paymentState.totalPayed > 0 &&
-                paymentState.totalPayed > ticketInfo.total_payment
+                paymentState.totalPayed > ticketInfo.total_a_pagar
                   ? transformToCurrency(
-                      paymentState.totalPayed - ticketInfo?.total_payment,
+                      paymentState.totalPayed - ticketInfo?.total_a_pagar,
                     )
                   : transformToCurrency(0)}
               </label>
@@ -527,17 +527,18 @@ export default function PayTicketInLocation() {
   const messageLabel = () => {
     if (ticketInfo?.tolerancia) {
       return (
-        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante} min` }</label>
-      )
+        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante} min`}</label>
+      );
     }
     if (ticketInfo?.repago) {
-      return <label>Ticket requiere nuevo pago</label>
+      return <label>Ticket requiere nuevo pago</label>;
     }
-    if (ticketInfo?.estado == "pagado" && !ticketInfo.repago ) {
-     <label>{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_restante_tolerancia} min` }</label>
+    if (ticketInfo?.estado == "pagado" && !ticketInfo.repago) {
+      return (
+        <label>{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_para_salir} min`}</label>
+      );
     }
-  
-  }
+  };
 
   const payTicketInfoContainer = () => {
     return (
@@ -550,36 +551,62 @@ export default function PayTicketInLocation() {
               <label>
                 <b>Información de ticket</b>
               </label>
-              <div className="ticket-info-container">
-                <p className="info-content">
-                  <b>{"Estado: "}</b>
-                  <label>{ticketInfo?.estado}</label>
-                </p>
-                <p className="info-content">
-                  <b>{"Fecha de entrada: "}</b>{" "}
-                  <label>
-                    {ticketInfo?.fechaEntrada &&
-                      transformDate(ticketInfo?.fechaEntrada)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Total a pagar:"}</b>{" "}
-                  <label>
-                    {ticketInfo?.total_a_pagar &&
-                      transformToCurrency(ticketInfo?.total_a_pagar)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Fecha de pago: "}</b>{" "}
-                  <label>
-                    {ticketInfo?.fechaPago &&
-                      transformDate(ticketInfo?.fechaPago as string)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Total de tiempo(hrs): "}</b>{" "}
-                  <label> {ticketInfo?.total_time}</label>
-                </p>
+              <div
+                className={cn("ticket-info-container", {
+                  hasToPay: ticketInfo?.repago,
+                })}
+              >
+                {messageLabel()}
+                <div className="ticket-info-row">
+                  <p className="info-content">
+                    <b>{"Estado: "}</b>
+                    <label>{ticketInfo?.estado}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Fecha de entrada: "}</b>{" "}
+                    <label>
+                      {ticketInfo?.fechaEntrada &&
+                        transformDate(ticketInfo?.fechaEntrada)}
+                    </label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Total de tiempo(hrs): "}</b>{" "}
+                    <label> {ticketInfo?.total_time}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Total a pagar:"}</b>{" "}
+                    <label>
+                      {ticketInfo?.repago
+                        ? ticketInfo?.total_a_pagar &&
+                          transformToCurrency(ticketInfo?.total_a_pagar)
+                        : transformToCurrency(0)}
+                    </label>
+                  </p>
+                </div>
+                <div className="ticket-payment-Info">
+                  <label htmlFor="">Informacion de ultimo pago</label>
+                  <p className="info-content"> 
+                  <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
+                  <label htmlFor="">{ticketInfo?.tiempo_despues_de_utimo_pago}</label>
+                  </p>
+                  <b>Historial de pagos de ticket</b>
+                  {ticketInfo?.dataPayment.map((item, index) => (
+                    <div key={item.id} className="ticket-info-content">
+                      <p className="info-content">
+                        <b>{"No. de pago: "}</b>{" "}
+                        <label> {index + 1}</label>
+                      </p>
+                      <p className="info-content">
+                        <b>{"Fecha de pago: "}</b>{" "}
+                        <label> {transformDate(item?.fechaPago)}</label>
+                      </p>
+                      <p className="info-content">
+                        <b>{"Total pagado: "}</b>{" "}
+                        <label> {transformToCurrency(item?.amount || 0)}</label>
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -602,8 +629,8 @@ export default function PayTicketInLocation() {
   }, [payment]);
 
   useEffect(() => {
-    if(!isLoading && !hasCredit && hasFetched) {
-      router.replace("/ticketPayment")
+    if (!isLoading && !hasCredit && hasFetched) {
+      router.replace("/ticketPayment");
     }
   }, [isLoading, hasCredit]);
 
@@ -624,54 +651,57 @@ export default function PayTicketInLocation() {
         >
           <CreditInfoComponent />
         </div>
-      { hasCredit && (
-        <>
-        <div className="header-container">
-          <div className="options-header">
-            <h1 className="main-header">Pago De ticket</h1>
-            <a onClick={() => router.back()}>Regresar</a>
-          </div>
-          <b>Datos de ubicación</b>
-          <div className="content-info">
-            <label>
-              <b>{"Ubicación: "}</b>
-              {locationInfo?.title}
-            </label>
-            <label>
-              <b>{"Dirección: "}</b>
-              {locationInfo?.address}
-            </label>
-            <label>
-              <b>{"Contacto: "}</b>
-              {locationInfo?.contact}
-            </label>
-          </div>
-        </div>
+        {hasCredit && (
+          <>
+            <div className="header-container">
+              <div className="options-header">
+                <h1 className="main-header">Pago De ticket</h1>
+                <a onClick={() => router.back()}>Regresar</a>
+              </div>
+              <b>Datos de ubicación</b>
+              <div className="content-info">
+                <label>
+                  <b>{"Ubicación: "}</b>
+                  {locationInfo?.title}
+                </label>
+                <label>
+                  <b>{"Dirección: "}</b>
+                  {locationInfo?.address}
+                </label>
+                <label>
+                  <b>{"Contacto: "}</b>
+                  {locationInfo?.contact}
+                </label>
+              </div>
+            </div>
 
-        <label>
-          <b>Ingrese el código qr del ticket</b>
-        </label>
-        <div className="qr-input-container">
-          <input
-            type="text"
-            placeholder="Ticket ID"
-            className="filter-input"
-            value={ticketId}
-            onChange={(e) => {
-              const formattedValue = e.target.value.replace(/'/g, "-");
-              setTicketId(formattedValue);
-            }}
-            />
-          <div className="trash-icon-container" onClick={() => setTicketId("")}>
-            <TrashIcon />
-          </div>
-          <button onClick={getTicketInfo} className="primary-button">
-            Buscar
-          </button>
-        </div>
-        {payTicketInfoContainer()}
-        {payTicketActions()}
-        </>
+            <label>
+              <b>Ingrese el código qr del ticket</b>
+            </label>
+            <div className="qr-input-container">
+              <input
+                type="text"
+                placeholder="Ticket ID"
+                className="filter-input"
+                value={ticketId}
+                onChange={(e) => {
+                  const formattedValue = e.target.value.replace(/'/g, "-");
+                  setTicketId(formattedValue);
+                }}
+              />
+              <div
+                className="trash-icon-container"
+                onClick={() => setTicketId("")}
+              >
+                <TrashIcon />
+              </div>
+              <button onClick={getTicketInfo} className="primary-button">
+                Buscar
+              </button>
+            </div>
+            {payTicketInfoContainer()}
+            {payTicketActions()}
+          </>
         )}
       </div>
     </>

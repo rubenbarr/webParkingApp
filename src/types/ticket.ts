@@ -14,32 +14,39 @@ export interface IPayment {
     "5": number;
   };
 }
-export interface ITicket {
+interface IDataPayment {
   amount: number;
-  cerrado: boolean;
   change: number;
+  fechaPago: string;
+  montoPagado: number;
+  paymentData: IPayment;
+  paidBy: string;
+  totalPayed:number;
+  id: string;
+}
+export interface ITicket {
+  cerrado: boolean;
   cocheDentro: boolean;
   creditUsed: string;
+  dataPayment: IDataPayment[];
   estado: string;
+  fecha_ultimo_pago: string;
   fechaCocheHaEntrado: string;
   fechaEntrada: string;
-  fechaPago: string;
   fechaSalida: string;
   fecha_pago: false;
   gateLabel: string;
   location: string;
-  montoPagado: number;
-  paidBy: string;
-  paymentData: IPayment;
+  message: string
+  nuevaCantidadPago: number;
+  repago:boolean;
   ticketId: string;
   total_payment: number;
   tolerancia: boolean;
   tiempo_restante:number;
-  totalPayed:number;
   total_time:number;
-  repago:boolean;
-  nuevaCantidadPago: number;
-  message: string
   tiempo_restante_tolerancia?: string;
   total_a_pagar: number
+  tiempo_para_salir: number
+  tiempo_despues_de_utimo_pago: string;
 }
