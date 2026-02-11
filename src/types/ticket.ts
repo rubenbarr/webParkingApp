@@ -16,9 +16,9 @@ export interface IPayment {
 }
 export interface ITicket {
   amount: number;
-  cerrado: true;
+  cerrado: boolean;
   change: number;
-  cocheDentro: true;
+  cocheDentro: boolean;
   creditUsed: string;
   estado: string;
   fechaCocheHaEntrado: string;
@@ -39,4 +39,7 @@ export interface ITicket {
   total_time:number;
   repago:boolean;
   nuevaCantidadPago: number;
+  message: string
+  tiempo_restante_tolerancia?: string;
+  total_a_pagar: number
 }

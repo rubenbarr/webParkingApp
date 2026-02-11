@@ -235,7 +235,7 @@ export default function PayTicketInLocation() {
     setPaymentState({ totalPayed, totalBills, totalCoins });
     setCanSubmitPayment(
       totalBills + totalCoins > 0 &&
-        totalBills + totalCoins >= (ticketInfo?.total_payment as number),
+        totalBills + totalCoins >= (ticketInfo?.total_a_pagar as number),
     );
   };
 
@@ -252,8 +252,8 @@ export default function PayTicketInLocation() {
             <div className="payment-total-info">
               <label>
                 <b>Total a pagar: </b>
-                {ticketInfo?.total_payment &&
-                  transformToCurrency(ticketInfo?.total_payment)}
+                {ticketInfo?.total_a_pagar &&
+                  transformToCurrency(ticketInfo?.total_a_pagar)}
               </label>
               <label>
                 <b>Total pagado: </b>
@@ -261,10 +261,10 @@ export default function PayTicketInLocation() {
               </label>
               <label>
                 <b>Total Restante: </b>
-                {ticketInfo?.total_payment &&
-                paymentState.totalPayed <= ticketInfo.total_payment
+                {ticketInfo?.total_a_pagar &&
+                paymentState.totalPayed <= ticketInfo.total_a_pagar
                   ? transformToCurrency(
-                      ticketInfo?.total_payment - paymentState.totalPayed,
+                      ticketInfo?.total_a_pagar - paymentState.totalPayed,
                     )
                   : 0}
               </label>
@@ -524,6 +524,21 @@ export default function PayTicketInLocation() {
     );
   };
 
+  const messageLabel = () => {
+    if (ticketInfo?.tolerancia) {
+      return (
+        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante} min` }</label>
+      )
+    }
+    if (ticketInfo?.repago) {
+      return <label>Ticket requiere nuevo pago</label>
+    }
+    if (ticketInfo?.estado == "pagado" && !ticketInfo.repago ) {
+     <label>{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_restante_tolerancia} min` }</label>
+    }
+  
+  }
+
   const payTicketInfoContainer = () => {
     return (
       shouldDisplayTicketInfo && (
@@ -536,7 +551,6 @@ export default function PayTicketInLocation() {
                 <b>Información de ticket</b>
               </label>
               <div className="ticket-info-container">
-                { ticketInfo?.tolerancia &&  <label>{`Ticket con tiempo de tolerancia, tiempo:  ${ticketInfo?.tiempo_restante} min` }</label>}
                 <p className="info-content">
                   <b>{"Estado: "}</b>
                   <label>{ticketInfo?.estado}</label>
@@ -549,10 +563,10 @@ export default function PayTicketInLocation() {
                   </label>
                 </p>
                 <p className="info-content">
-                  <b>{"Total a pagar/pagado:"}</b>{" "}
+                  <b>{"Total a pagar:"}</b>{" "}
                   <label>
-                    {ticketInfo?.total_payment &&
-                      transformToCurrency(ticketInfo?.total_payment)}
+                    {ticketInfo?.total_a_pagar &&
+                      transformToCurrency(ticketInfo?.total_a_pagar)}
                   </label>
                 </p>
                 <p className="info-content">
