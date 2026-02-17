@@ -49,13 +49,14 @@ export default function TicketValidation() {
       const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
       
       let cameraId = videoDevices[0].deviceId;
+      alert(videoDevices);
       if (isMobile) {
         const backCamera = videoDevices.find(d => 
           d.label.toLowerCase().includes("back") ||
           d.label.toLowerCase().includes("rear") || 
           d.label.toLowerCase().includes("environment")
         )
-        if (backCamera) cameraId = backCamera.deviceId;
+        if (backCamera) cameraId = backCamera.deviceId || videoDevices[0].deviceId;
       }
       
       qrInstance.current = new Html5Qrcode("qr-reader")
