@@ -46,9 +46,9 @@ export default function TicketValidation() {
         return;
       }
       
-      const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
+      await navigator.mediaDevices.getUserMedia( {video: true})
       
-      alert(JSON.stringify(videoDevices))
+      const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
       let cameraId = videoDevices[0].deviceId;
       if (isMobile) {
         const backCamera = videoDevices.find(d => 
