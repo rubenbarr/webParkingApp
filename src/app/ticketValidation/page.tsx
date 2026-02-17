@@ -46,8 +46,7 @@ export default function TicketValidation() {
         return;
       }
       
-      await navigator.mediaDevices.getUserMedia( {video: true})
-      
+
       const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
       let cameraId = videoDevices[0].deviceId;
       if (isMobile) {
@@ -110,6 +109,11 @@ export default function TicketValidation() {
       validateTicket()
     } 
   },[result])
+
+
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia( {video: true})
+  },[])
 
   const qrReader = () => {
     return (
