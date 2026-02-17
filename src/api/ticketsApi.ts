@@ -40,3 +40,16 @@ export async function payTicket(token:string, ticketId:string, data:object) {
         return error;
     }
 }
+
+export async function validateTicketReq(token: string, ticketId: string) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/ticketValidation/${ticketId}`, {
+            method: PATCH,
+            headers: {...headers(token)}
+        })
+        return req;
+
+    } catch (error) {
+        return error 
+    }
+}

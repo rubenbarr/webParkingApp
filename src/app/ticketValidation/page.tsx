@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { useAuth } from '@/context/AuthContext';
+import { validateTicketReq } from '@/api/ticketsApi';
+import { Response } from '@/api/usersApi';
 
 export default function TicketValidation() {
   const {userType, token, setLoadingGlobal, isLoadingGlobal, } = useAuth();
@@ -16,7 +19,6 @@ export default function TicketValidation() {
 
   const stopScanner = async (eraseResult:boolean) => {
     try {
-      alert("here")
       if (eraseResult) setResult(null)
       if(scanning && qrInstance.current) {
        await qrInstance.current.stop();
@@ -29,6 +31,7 @@ export default function TicketValidation() {
 
   const startScanner = async () => {
     setResult(null);
+    setError(null);
     try {
       if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices ) {
         setError("Es posible que tu navegador no soporte tu camara, cambia de navegador a google Chrome")
@@ -79,11 +82,31 @@ export default function TicketValidation() {
     }
   }
 
+  const validateTicket = async () =>  {
+    if (!result) return;
+    try {
+      setLoadingGlobal(true);
+      const data = await validateTicketReq(token as string, result as string) as Response;
+      if (!data.state) {
+        setError(data?.message ||  "Hubo un error validando ticket, consulte a administracion")
+      }
+    } catch(error: unknown | Response | any) {
+      const errorMessage = error?.message || "Hubo un error validando ticket, consulte a administracion"
+      setError(errorMessage)
+    } finally {
+      setLoadingGlobal(false)
+    }
+
+
+  }
+
 
   useEffect(() => {
-
-  },[])
-
+    if (result) {
+      stopScanner(false);
+      validateTicket()
+    } 
+  },[result])
 
   const qrReader = () => {
     return (
@@ -110,7 +133,7 @@ export default function TicketValidation() {
       <button className='primary-button' onClick={() => stopScanner(true)}>Cancelar</button> }
       {ErrorLabel()}
       {qrReader()}
-      {result && ( <label>{result}</label>)}
+      {/* {result && ( <label>{result}</label>)} */}
     </div>
   )
 }
