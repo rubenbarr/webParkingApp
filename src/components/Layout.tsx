@@ -49,21 +49,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const operatorsUrls = [
     "dashboard",
     "ticketPayment",
-    "settingsPage",
-    "ticketPayment",
+    "settingsPage"
   ];
   const businessUrls = ["dashboard", "settingsPage", "ticketValidation"];
-
   const renderSideMenu = (userType: string) => {
     switch (userType) {
-      case "operador":
+      case "operador":  
         return operatorMenu();
       case "global-admin":
-        return adminMenu();
+          return adminMenu();
       case "negocio":
-        return negocioMenu();
+  return         negocioMenu();
       default:
-        break;
+        return null;
     }
   };
 
@@ -95,16 +93,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     switch (userType) {
       case "operador":
         if (!operatorsUrls.includes(path.split("/")[1])) {
-          router.replace("/dashboard");
+          return router.replace("/dashboard");
         }
+        break;
       case "negocio":
         if (!businessUrls.includes(path.split("/")[1])) {
-          router.replace("/dashboard");
+          return router.replace("/dashboard");
         }
+        break;
       case "global-admin":
-        return;
+        break;
       default:
-        router.replace("/dashboard");
+        break
     }
   };
 
