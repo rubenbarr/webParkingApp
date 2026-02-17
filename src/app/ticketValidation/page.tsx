@@ -76,7 +76,7 @@ export default function TicketValidation() {
       setshouldDisplayQrReader(true);
     } catch (error) {
       console.log(error)
-      setError("Error activando tu camara, comunicate con administracion")
+      setError("Error activando tu camara, comunicate con administracion" + `${error}`)
       setshouldDisplayQrReader(false);
       
     }
