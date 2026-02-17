@@ -46,7 +46,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [validating, isValidating] = useState(false);
   const [displayMenu, setDisplayMenu] = useState(false);
 
-  const operatorsUrls = ['dashboard', 'ticketPayment', 'settingsPage', 'ticketPayment'];
+  const operatorsUrls = [
+    "dashboard",
+    "ticketPayment",
+    "settingsPage",
+    "ticketPayment",
+  ];
+  const businessUrls = ["dashboard", "settingsPage", "ticketValidation"];
+
+  const renderSideMenu = (userType: string) => {
+    switch (userType) {
+      case "operador":
+        return operatorMenu();
+      case "global-admin":
+        return adminMenu();
+      case "negocio":
+        return negocioMenu();
+      default:
+        break;
+    }
+  };
 
   useEffect(() => {
     const validateTokenReq = async () => {
@@ -72,14 +91,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     validateTokenReq();
   }, [loadingContext, router]);
 
+  const handleUrls = (userType: string) => {
+    switch (userType) {
+      case "operador":
+        if (!operatorsUrls.includes(path.split("/")[1])) {
+          router.replace("/dashboard");
+        }
+      case "negocio":
+        if (!businessUrls.includes(path.split("/")[1])) {
+          router.replace("/dashboard");
+        }
+      case "global-admin":
+        return;
+      default:
+        router.replace("/dashboard");
+    }
+  };
 
   useEffect(() => {
-      if (userType === 'operador' ) {
-        if(! operatorsUrls.includes(path.split('/')[1])) {
-          router.replace('/dashboard');
-        }
-      }
-  },[path, router, loadingContext, userType])
+    userType && handleUrls(userType as string);
+  }, [path, router, loadingContext, userType]);
 
   const handleSideMenu = (url: string) => {
     router.push(url);
@@ -129,14 +160,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Pagar Ticket
         </div>
       </div>
-        {buttonMenu()}
+      {buttonMenu()}
+    </>
+  );
+
+  const negocioMenu = () => (
+    <>
+      <div className={style["side-top-menu"]}>
+        <div onClick={() => handleSideMenu("/dashboard")} className="">
+          Dashboard
+        </div>
+        <div onClick={() => handleSideMenu("/ticketValidation")} className="">
+          Validar ticket
+        </div>
+      </div>
+      {buttonMenu()}
     </>
   );
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
-  if (loadingContext || validating) return <LoadingComponent />;
+  if (loadingContext || validating || !userType) return <LoadingComponent />;
   if (!Logged) return null;
 
   return (
@@ -165,7 +210,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className={cn(
             style["sidebar"],
             { [style["minimize"]]: minimize },
-            { [style["expand"]]: displayMenu }
+            { [style["expand"]]: displayMenu },
           )}
         >
           <div className={style["side-bar-button"]}>
@@ -191,11 +236,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {!minimize && <nav className={style["side-menu"]}>
-            {userType && userType === "global-admin"
-                ? adminMenu()
-                : operatorMenu()}
-            </nav>}
+          {!minimize && (
+            <nav className={style["side-menu"]}>
+              {userType && renderSideMenu(userType)}
+            </nav>
+          )}
         </aside>
         <main
           className={style["main-content"]}
