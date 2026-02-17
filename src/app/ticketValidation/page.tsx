@@ -89,6 +89,8 @@ export default function TicketValidation() {
       const data = await validateTicketReq(token as string, result as string) as Response;
       if (!data.state) {
         setError(data?.message ||  "Hubo un error validando ticket, consulte a administracion")
+      } else {
+        setError("Se valido correctamente el ticket")
       }
     } catch(error: unknown | Response | any) {
       const errorMessage = error?.message || "Hubo un error validando ticket, consulte a administracion"
