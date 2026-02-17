@@ -23,6 +23,7 @@ export default function TicketValidation() {
       if(scanning && qrInstance.current) {
        await qrInstance.current.stop();
         setIsScanning(false);
+        setError(null);
       }
     } catch(error) {
       console.log(error)
@@ -48,7 +49,9 @@ export default function TicketValidation() {
       
 
       const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
+
       let cameraId = videoDevices[0].deviceId;
+
       if (isMobile) {
         const backCamera = videoDevices.find(d => 
           d.label.toLowerCase().includes("back") ||
@@ -75,7 +78,7 @@ export default function TicketValidation() {
       )
       setshouldDisplayQrReader(true);
     } catch (error) {
-      console.log(error)
+
       setError("Error activando tu camara, comunicate con administracion" + `${error}`)
       setshouldDisplayQrReader(false);
       
