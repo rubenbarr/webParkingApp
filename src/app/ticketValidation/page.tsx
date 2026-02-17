@@ -53,7 +53,7 @@ export default function TicketValidation() {
         const backCamera = videoDevices.find(d => 
           d.label.toLowerCase().includes("back") ||
           d.label.toLowerCase().includes("rear") || 
-          d.label.toLowerCase().includes("enviroment")
+          d.label.toLowerCase().includes("environment")
         )
         if (backCamera) cameraId = backCamera.deviceId;
       }
