@@ -55,7 +55,7 @@
         transform 0.25s ease-in-out;
 
     &.inPlace {
-        max-height: 1000px;
+        max-height: max-content;
         opacity: 1;
         transform: translateY(0);
     }

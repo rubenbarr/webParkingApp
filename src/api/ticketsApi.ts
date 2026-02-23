@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fetchWithTimeout, GET, LOCALHOST, PATCH, POST, DELETE} from "./authApi";
+import { fetchWithTimeout, GET, LOCALHOST, PATCH, POST} from "./authApi";
 import { headers } from "./locationApi";
 
 
@@ -45,6 +45,18 @@ export async function validateTicketReq(token: string, ticketId: string) {
     try {
         const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/ticketValidation/${ticketId}`, {
             method: PATCH,
+            headers: {...headers(token)}
+        })
+        return req;
+
+    } catch (error) {
+        return error 
+    }
+}
+export async function getTicketsFromLocation(token: string, locationId: string, page:number, limit:number, fromDate:string, toDate:string) {
+    try {
+        const req = await fetchWithTimeout(`${LOCALHOST}/api/ticketRoute/getTickets?locationId=${locationId}&page=${page}&limit=${limit}&dateFrom=${fromDate}&dateTo=${toDate}`, {
+            method: GET,
             headers: {...headers(token)}
         })
         return req;

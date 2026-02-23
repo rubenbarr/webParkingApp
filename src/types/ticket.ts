@@ -49,4 +49,8 @@ export interface ITicket {
   total_a_pagar: number
   tiempo_para_salir: number
   tiempo_despues_de_utimo_pago: string;
+  parkingValidation: boolean;
+  validatedAt: string;
+  validatedBy: string;
+
 }

@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
-import ticketReducer from './slices/ticketSlice';
+// import ticketReducer from './slices/ticketSlice';
 import dashboardReducer from './slices/dashboardSlice';
-import locationInfoReducer from './slices/locationInfoSlice';
+import {locationInfoReducer, ticketReducer} from './slices/locationInfoSlice';
 import creditInfoReducer from './slices/creditSlice';
 
 export const store = configureStore({
@@ -13,7 +13,8 @@ export const store = configureStore({
         tickets: ticketReducer,
         dashboard: dashboardReducer,
         locationInfo: locationInfoReducer,
-        creditInfo: creditInfoReducer
+        creditInfo: creditInfoReducer,
+        ticketsInfo: ticketReducer
     }
 });
 
