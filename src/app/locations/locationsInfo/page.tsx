@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 
 import "./kioscoInfoStyles.scss";
 import {
+  fetchLocationFinancialData,
   fetchLocationInfo,
   fetchTickets,
   ITicketsParams,
@@ -34,6 +35,8 @@ export default function Page() {
     (state: RootState) => state.ticketsInfo,
   );
 
+  const { data } = useSelector( (state:RootState) => state.financialDataReducer)
+
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -46,7 +49,7 @@ export default function Page() {
     new Date().toISOString().split("T")[0],
   );
   const [ticketsPage, setTicketsPage] = useState(1);
-  const [ticketsLimit, setCreditsLimit] = useState(2);
+  const [ticketsLimit, setTicketsLimit] = useState(2);
 
   function getLocationInfo(token: string, locationId: string) {
     setLoadingGlobal(true);
@@ -61,6 +64,14 @@ export default function Page() {
       .unwrap()
       .finally(() => setLoadingGlobal(false));
   }
+
+  function dispatchFinancialData(params:ITicketsParams) {
+  setLoadingGlobal(true);
+  dispatch(fetchLocationFinancialData(params))
+  .unwrap()
+  .finally(()=> setLoadingGlobal(false));
+  }
+
 
   function loadMore(){
     if (token && locationId) {
@@ -92,6 +103,14 @@ export default function Page() {
           fromDate,
           toDate,
         });
+        dispatchFinancialData({
+          token,
+          locationId,
+          page: ticketsPage,
+          limit: ticketsLimit,
+          fromDate,
+          toDate,
+        })
       }
     } else router.replace("/locations");
   }, []);
@@ -99,6 +118,18 @@ export default function Page() {
   function getTickets() {
     if (!token || !locationId) return;
     dispatchTickets({
+      token,
+      locationId,
+      page: 1,
+      limit: ticketsLimit,
+      fromDate,
+      toDate,
+    });
+  }
+
+  function getFinancialData() {
+    if (!token || !locationId) return;
+    dispatchFinancialData({
       token,
       locationId,
       page: 1,
@@ -234,21 +265,7 @@ export default function Page() {
             <b>{"Fecha Actual: "}</b> {currentDate}
           </label>
           <div className="financial-content-body">
-            <div className="row">
-              <b>Información de dia</b>
-              <div className="content-row">
-                <label>
-                  <b>{"Pagos del dia: "}</b>test
-                </label>
-                <label>
-                  <b>{"Entradas del día: "}</b>test
-                </label>
-                <label>
-                  <b>{"Tickets por pagar: "}</b>test
-                </label>
-              </div>
-            </div>
-            <div className="row">
+                        <div className="row">
               <label>Buscar por fecha</label>
               <div className="content-row">
                 <div className="input-dates-row">
@@ -273,6 +290,7 @@ export default function Page() {
                     onClick={() => {
                       setTicketsPage(1)
                       getTickets();
+                      getFinancialData();
                     }}
                   >
                     Buscar
@@ -288,6 +306,35 @@ export default function Page() {
                 </div>
               </div>
             </div>
+            <div className="row">
+              <b>Información financiera</b>
+              <div className="content-row">
+                <label>
+                  <b>{"Entradas del día: "}</b> {data?.totalCarsIn}
+                </label>
+                <label>
+                  <b>{"Tickets pagados: "}</b>{data?.totalPayed}
+                </label>
+                <label>
+                  <b>{"Pagos del dia: "}</b>{data?.totalPaid ? transformToCurrency(data.totalPaid) : transformToCurrency(0)}
+                </label>
+              </div>
+            </div>
+            <div className="row">
+              <b>Información de conteo de entradas</b>
+              <div className="content-row">
+                <label>
+                  <b>{"Total de conteo: "}</b> {data?.totalCarsIn}
+                </label>
+                <label>
+                  <b>{"Total de coches: "}</b>{data?.totalPayed}
+                </label>
+                <label>
+                  <b>{"total de Motos: "}</b>{data?.totalPaid }
+                </label>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -359,7 +406,6 @@ export default function Page() {
     );
   };
 
-  console.log(tickets);
   return (
     <>
       <div className="kiosco-info-container">

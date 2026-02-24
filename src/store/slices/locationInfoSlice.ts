@@ -1,5 +1,5 @@
 import { getLocationById } from "@/api/locationApi";
-import { getTicketsFromLocation } from "@/api/ticketsApi";
+import { getFinancialData, getTicketsFromLocation } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 import { ITicket } from "@/types/ticket";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
@@ -12,6 +12,22 @@ type Data = {
 type Params = {
     token:string;
     locationId: string;
+}
+
+type LocationDataType = {
+   "_id": number;
+        "totalCarsIn": number;
+        "totalOut": number;
+        "totalPaid": number;
+        "totalPayed": number;
+        "totalTickets": number;
+}
+
+export interface LocationInfo {
+    loading: boolean;
+    data: LocationDataType | null;
+    error: boolean | null;
+    errorMessage: string | null;
 }
 
 type LocationState = {
@@ -68,6 +84,13 @@ const initialState: LocationState = {
     }
 }
 
+const initialStateLocationInformation: LocationInfo = {
+    loading: false,
+    data:  null,
+    error:  null,
+    errorMessage: null,
+}
+
 const initialTicketsState: ITicketsInitialState  = {
     loading: false,
     error: null,
@@ -97,6 +120,15 @@ export const fetchTickets = createAsyncThunk(
     }
 )
 
+
+export const fetchLocationFinancialData = createAsyncThunk(
+    'locationsFinancialData',
+    async(params: ITicketsParams) => {
+        const { token, locationId, fromDate, toDate  } = params;
+        const req = await getFinancialData(token, locationId, fromDate, toDate) as Response;
+        return req;
+    }
+)
 
 
 const locationInfoSlice = createSlice({
@@ -166,7 +198,40 @@ const ticketsSlice = createSlice({
     }
 })
 
+
+const  financialDataSlice = createSlice({
+    name: "financialData",
+    initialState: initialStateLocationInformation,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+        .addCase(fetchLocationFinancialData.pending, (state, action) => {
+            state.loading = true;
+            state.error = null;
+        })
+        .addCase(fetchLocationFinancialData.fulfilled,  (state, action) => {
+            state.loading = false;
+            const res = action.payload;
+            if(!res.state) {
+                state.error = true;
+                state.errorMessage = res.message || "Error desconocido obteniendo datos financieros";
+            } else {
+                state.error = null;
+                state.errorMessage = null;
+                const data = res.data as LocationDataType;
+                state.data = data
+            }
+        })
+        .addCase(fetchLocationFinancialData.rejected, (state, action) => {
+            state.error = true;
+            state.errorMessage = action.error.message || "Error desconocido obteniendo datos financieros";
+        })
+    }
+
+})
+
 const ticketReducer = ticketsSlice.reducer;
 const locationInfoReducer = locationInfoSlice.reducer;
+const financialDataReducer = financialDataSlice.reducer;
 
-export  { locationInfoReducer, ticketReducer };
+export  { locationInfoReducer, ticketReducer, financialDataReducer };
