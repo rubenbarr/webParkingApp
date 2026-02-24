@@ -524,9 +524,18 @@ export default function PayTicketInLocation() {
     );
   };
 
+  const ticketValidationLabel = () => ticketInfo?.hasValidation && (
+    <div style={{display:"flex", flexDirection:"column"}}>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>Este ticket cuenta con validacion de establecimiento</label>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Fecha/validation: " + transformDate(ticketInfo.validatedAt)}</label>
+    </div>
+  ) 
+    
   const messageLabel = () => {
     if(!ticketInfo?.cocheDentro) return (
+      <>
       <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida &&  "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
+      </>
     )
     if (ticketInfo?.tolerancia) {
       return (
@@ -557,9 +566,12 @@ export default function PayTicketInLocation() {
               <div
                 className={cn("ticket-info-container", {
                   hasToPay: ticketInfo?.repago,
-                })}
+                               })}
+
+             
               >
                 {messageLabel()}
+                {ticketValidationLabel()}
                 <div className="ticket-info-row">
                   <p className="info-content">
                     <b>{"Estado: "}</b>
@@ -579,10 +591,9 @@ export default function PayTicketInLocation() {
                   <p className="info-content">
                     <b>{"Total a pagar:"}</b>{" "}
                     <label>
-                      {ticketInfo?.repago
-                        ? ticketInfo?.total_a_pagar &&
-                          transformToCurrency(ticketInfo?.total_a_pagar)
-                        : transformToCurrency(0)}
+                      {
+                          ticketInfo?.total_a_pagar && transformToCurrency(ticketInfo?.total_a_pagar)
+                       }
                     </label>
                   </p>
                 </div>

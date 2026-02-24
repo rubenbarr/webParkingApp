@@ -6,7 +6,7 @@ export const PATCH = 'PATCH';
 export const headersDefault = { "Content-Type": "application/json" };
 export const LOCALHOST =  process.env?.NEXT_PUBLIC_IS_LOCAL === "true" ?  process.env.NEXT_PUBLIC_LOCAL_URL :  process.env.NEXT_PUBLIC_API_URL 
 
-console.log(process.env.NEXT_PUBLIC_API_URL)
+
 interface OptionsInterface extends RequestInit {
     timeout?: number;
     external?:boolean

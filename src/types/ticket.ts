@@ -52,5 +52,5 @@ export interface ITicket {
   parkingValidation: boolean;
   validatedAt: string;
   validatedBy: string;
-
+  hasValidation: boolean;
 }
