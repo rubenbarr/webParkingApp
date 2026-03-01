@@ -4,7 +4,24 @@ export const DELETE = 'DELETE';
 export const PATCH = 'PATCH';
 
 export const headersDefault = { "Content-Type": "application/json" };
-export const LOCALHOST =  process.env?.NEXT_PUBLIC_IS_LOCAL === "true" ?  process.env.NEXT_PUBLIC_LOCAL_URL :  process.env.NEXT_PUBLIC_API_URL 
+
+const IS_LOCAL = process.env.NEXT_PUBLIC_LOCAL;
+const IS_DEV = process.env.NEXT_PUBLIC_DEV;
+const IS_PROD = process.env.NEXT_PUBLIC_PROD
+
+const local_url = process.env.NEXT_PUBLIC_LOCAL_URL;
+const dev_url = process.env.NEXT_PUBLIC_DEV_BACKEND_URL;
+const prod_url = process.env.NEXT_PUBLIC_PROD_BACKEND_URL;
+
+
+// export const LOCALHOST =  process.env?.NEXT_PUBLIC_IS_LOCAL === "true" ?  process.env.NEXT_PUBLIC_LOCAL_URL :  process.env.NEXT_PUBLIC_API_URL 
+export const LOCALHOST = getUrlInstance();
+
+function getUrlInstance () {
+    if (IS_LOCAL == "true") return local_url;
+    if (IS_DEV == "true") return dev_url;
+    if(IS_PROD == "true") return prod_url;
+}
 
 
 interface OptionsInterface extends RequestInit {
