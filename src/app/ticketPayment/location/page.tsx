@@ -17,6 +17,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import CreditInfoComponent from "@/components/CreditInfo/CreditInfo";
 import { fetchCreditInfo } from "@/store/slices/creditSlice";
 import { ITicket } from "@/types/ticket";
+import ButtonOpenBarrier from "@/components/OpenBarrier/ButtonOpenBarrier";
 
 interface ILocation {
   title: string;
@@ -40,6 +41,7 @@ export default function PayTicketInLocation() {
   const router = useRouter();
   const params = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
+
 
   // end of global statements/data
 
@@ -73,12 +75,11 @@ export default function PayTicketInLocation() {
     totalBills: 0,
     totalCoins: 0,
   };
-  // end initial state
   const [locationInfo, setLocationInfo] = useState<ILocation | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string>("");
   const [shouldDisplayTicketInfo, setShouldDisplayTicketInfo] =
-    useState<boolean>(false);
+  useState<boolean>(false);
   const [canPayTicket, setCanPayTicket] = useState<boolean>(false);
   const [canSubmitPayment, setCanSubmitPayment] = useState(false);
   const [paymentState, setPaymentState] = useState({
@@ -87,6 +88,8 @@ export default function PayTicketInLocation() {
     totalCoins: 0,
   });
 
+  const [canOpenBarrier, setCanOpenBarrier] = useState(false);
+  // end initial state
   function refreshCredit() {
     setLoadingGlobal(true);
     dispatch(fetchCreditInfo({ token: token as string }))
@@ -181,10 +184,15 @@ export default function PayTicketInLocation() {
         ticketInfo?.ticketId as string,
         data,
       )) as Response;
-      if (!req.state) return handleToast("error", req?.message);
+      if (!req.state) {
+        setCanOpenBarrier(false);    
+        return handleToast("error", req?.message);
+      } 
+        
       handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
       refreshCredit();
+      setCanOpenBarrier(true);
     } catch (error: any) {
       handleToast(
         "error",
@@ -650,6 +658,13 @@ export default function PayTicketInLocation() {
 
   // ends useEffects
 
+  const renderButtonToOpenBarrier = () => {
+      return canOpenBarrier && (
+        <div style={{display:"flex", justifyContent:"flex-end"}}>
+          <ButtonOpenBarrier ShouldDisplay={canOpenBarrier} handleShouldDisplay={setCanOpenBarrier}/>
+        </div>
+      )
+  }
   return (
     <>
       <div className="main-content first">
@@ -688,7 +703,7 @@ export default function PayTicketInLocation() {
                 </label>
               </div>
             </div>
-
+            {renderButtonToOpenBarrier()}
             <label>
               <b>Ingrese el código qr del ticket</b>
             </label>
