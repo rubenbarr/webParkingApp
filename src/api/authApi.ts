@@ -15,6 +15,7 @@ const prod_url = process.env.NEXT_PUBLIC_PROD_BACKEND_URL;
 
 
 // export const LOCALHOST =  process.env?.NEXT_PUBLIC_IS_LOCAL === "true" ?  process.env.NEXT_PUBLIC_LOCAL_URL :  process.env.NEXT_PUBLIC_API_URL 
+
 export const LOCALHOST = getUrlInstance();
 
 function getUrlInstance () {
