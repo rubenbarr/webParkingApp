@@ -17,6 +17,8 @@ import { AppDispatch, RootState } from "@/store/store";
 import CreditInfoComponent from "@/components/CreditInfo/CreditInfo";
 import { fetchCreditInfo } from "@/store/slices/creditSlice";
 import { ITicket } from "@/types/ticket";
+import { PDFViewer } from "@react-pdf/renderer";
+import TicketPDF from "@/components/ReciboTicketPdf/Reciboticket";
 import ButtonOpenBarrier from "@/components/OpenBarrier/ButtonOpenBarrier";
 
 interface ILocation {
@@ -89,6 +91,7 @@ export default function PayTicketInLocation() {
   });
 
   const [canOpenBarrier, setCanOpenBarrier] = useState(false);
+  const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
   // end initial state
   function refreshCredit() {
     setLoadingGlobal(true);
@@ -164,6 +167,7 @@ export default function PayTicketInLocation() {
     }
   }
 
+  
   async function payTicketRequest() {
     if (!canSubmitPayment) return;
     const data = {
@@ -665,9 +669,37 @@ export default function PayTicketInLocation() {
         </div>
       )
   }
+  const renderButtonToPrintTicketReceive = () => {
+      return ticketInfo?.estado == 'pagado' && (
+        <div style={{display:"flex", justifyContent:"flex-end"}}>
+          {!displayPdfViewe ? (
+
+            <button className="primary-button" onClick={()=> setDisplayPdfViewer(true)}>
+            Imprimir recibo
+          </button>
+          ) :  (
+          <button className="primary-button" onClick={()=> setDisplayPdfViewer(false)}>
+            Cerrar vista de impresion
+          </button>
+          )
+          }
+        </div>
+      )
+  }
+
+  const PDFViewerComponent = () => {
+  return (
+    displayPdfViewe &&
+      <PDFViewer style={{ width: "100%", height: "40vh" }}>
+        <TicketPDF  ticket={ticketInfo as ITicket} locationTitle={locationInfo?.title as string} />
+      </PDFViewer> 
+    )
+
+  }
   return (
     <>
       <div className="main-content first">
+        {PDFViewerComponent()}
         <div
           style={{
             position: "sticky",
@@ -704,6 +736,7 @@ export default function PayTicketInLocation() {
               </div>
             </div>
             {renderButtonToOpenBarrier()}
+            {renderButtonToPrintTicketReceive()}
             <label>
               <b>Ingrese el código qr del ticket</b>
             </label>
@@ -728,8 +761,10 @@ export default function PayTicketInLocation() {
                 Buscar
               </button>
             </div>
+            <div className="">
             {payTicketInfoContainer()}
             {payTicketActions()}
+            </div>
           </>
         )}
       </div>
