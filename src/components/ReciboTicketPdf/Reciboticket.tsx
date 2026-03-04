@@ -40,6 +40,9 @@ export const TicketPDF = (props: TicketProps) => {
     <Document>
       <Page size={[155, 300]} style={styles.page}>
         <View style={styles.section}>
+          <View style={{display:"flex", width:"100%", alignItems:"center", justifyContent:"center"}}>
+            <Text >Recibo de pago</Text>
+          </View>
           <Text style={styles.header}>{locationTitle}</Text>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Fecha de entrada: </Text>

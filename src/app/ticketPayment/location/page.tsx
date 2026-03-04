@@ -90,8 +90,10 @@ export default function PayTicketInLocation() {
     totalCoins: 0,
   });
 
-  const [canOpenBarrier, setCanOpenBarrier] = useState(false);
+  const [canOpenBarrier, setCanOpenBarrier] = useState(true);
   const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
+  const [shouldDisplayPrintButton, setShouldDisplayPrintButton] = useState(false);
+
   // end initial state
   function refreshCredit() {
     setLoadingGlobal(true);
@@ -158,7 +160,10 @@ export default function PayTicketInLocation() {
         setShouldDisplayTicketInfo(true);
         setTicketInfo(data);
         if (data.estado === "pendiente" || data.repago) setCanPayTicket(true);
-        else setCanPayTicket(false);
+        else {
+          setCanPayTicket(false);
+          setShouldDisplayPrintButton(true);
+        }
       }
     } catch (error) {
       handleToast("error", `Hubo un error: ${error}`);
@@ -190,9 +195,10 @@ export default function PayTicketInLocation() {
       )) as Response;
       if (!req.state) {
         setCanOpenBarrier(false);    
+        setShouldDisplayPrintButton(false)
         return handleToast("error", req?.message);
-      } 
-        
+      }
+      setShouldDisplayPrintButton(true)
       handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
       refreshCredit();
@@ -670,7 +676,7 @@ export default function PayTicketInLocation() {
       )
   }
   const renderButtonToPrintTicketReceive = () => {
-      return ticketInfo?.estado == 'pagado' && (
+      return shouldDisplayPrintButton && (
         <div style={{display:"flex", justifyContent:"flex-end"}}>
           {!displayPdfViewe ? (
 
