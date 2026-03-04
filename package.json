@@ -13,6 +13,7 @@
   "dependencies": {
     "@next/env": "^16.0.7",
     "@next/font": "^14.2.15",
+    "@react-pdf/renderer": "^4.3.2",
     "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/cli": "^4.1.11",
     "axios": "^1.11.0",
