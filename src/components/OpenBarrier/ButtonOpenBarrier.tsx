@@ -22,7 +22,7 @@ export default function ButtonOpenBarrier(props: IButtonBarrierProps) {
     const token =
       "48e152152225498d99a1d56fd1a16dc202a3caef4155f113f7e2d7e86458118a";
     const ws = new WebSocket(
-      `wss://macroscopic-oppugnant-audriana.ngrok-free.dev/ws?token=${token}`,
+      `wss://punctual-gaugeably-madison.ngrok-free.dev/ws?token=${token}`,
     );
 
     wsRef.current = ws;
