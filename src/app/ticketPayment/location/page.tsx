@@ -90,7 +90,7 @@ export default function PayTicketInLocation() {
     totalCoins: 0,
   });
 
-  const [canOpenBarrier, setCanOpenBarrier] = useState(true);
+  const [canOpenBarrier, setCanOpenBarrier] = useState(false);
   const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
   const [shouldDisplayPrintButton, setShouldDisplayPrintButton] = useState(false);
 
