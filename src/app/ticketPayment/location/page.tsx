@@ -142,6 +142,7 @@ export default function PayTicketInLocation() {
     if (ticketId === "") return;
     try {
       setLoadingGlobal(true);
+      setDisplayPdfViewer(false);
       const req = (await getTicketInfoById(
         token as string,
         ticketId as string,
@@ -202,7 +203,9 @@ export default function PayTicketInLocation() {
       handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
       refreshCredit();
-      setCanOpenBarrier(true);
+      getTicketInfo()
+      //setCanOpenBarrier(true);
+
     } catch (error: any) {
       handleToast(
         "error",
