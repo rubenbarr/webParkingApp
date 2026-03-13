@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import "./payticketlocation.scss";
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +12,14 @@ import { Response } from "@/api/usersApi";
 import { getTicketInfoById, payTicket } from "@/api/ticketsApi";
 import cn from "classnames";
 
-import "./payticketlocation.scss";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+// import CreditInfoComponent from "@/components/CreditInfo/CreditInfo";
+// import { fetchCreditInfo } from "@/store/slices/creditSlice";
+import { ITicket } from "@/types/ticket";
+import { PDFViewer } from "@react-pdf/renderer";
+import TicketPDF from "@/components/ReciboTicketPdf/Reciboticket";
+import ButtonOpenBarrier from "@/components/OpenBarrier/ButtonOpenBarrier";
 
 interface ILocation {
   title: string;
@@ -22,23 +31,31 @@ interface ILocation {
   totalKioscos?: number;
 }
 
-interface ITicketInfo {
-  ticketId: string;
-  estado: string;
-  fecha_entrada: string;
-  total_payment: number;
-  fechaPago: string | boolean;
-  total_time: string;
-}
 interface Ipayment {
-  bills: Record<number, number>;
-  coins: Record<number, number>;
+  bills: Record<any, any>;
+  coins: Record<any, any>;
 }
 
 export default function PayTicketInLocation() {
-  const { setLoadingGlobal, token, handleToast } = useAuth();
+  // global statements/data
+
+  const { setLoadingGlobal, token, handleToast, isLoadingGlobal } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
+  const dispatch = useDispatch<AppDispatch>();
+
+
+  // end of global statements/data
+
+  // selector data
+
+  const { isLoading, hasFetched } = useSelector(
+    (state: RootState) => state.creditInfo,
+  );
+
+  // end selector data
+
+  // initial state
   const initialBillsCoinsInfo = {
     bills: {
       20: 0,
@@ -54,17 +71,17 @@ export default function PayTicketInLocation() {
       5: 0,
       10: 0,
     },
-  }
+  };
   const initialPaymentState = {
     totalPayed: 0,
     totalBills: 0,
     totalCoins: 0,
-  } 
+  };
   const [locationInfo, setLocationInfo] = useState<ILocation | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string>("");
   const [shouldDisplayTicketInfo, setShouldDisplayTicketInfo] =
-    useState<boolean>(false);
+  useState<boolean>(false);
   const [canPayTicket, setCanPayTicket] = useState<boolean>(false);
   const [canSubmitPayment, setCanSubmitPayment] = useState(false);
   const [paymentState, setPaymentState] = useState({
@@ -73,7 +90,19 @@ export default function PayTicketInLocation() {
     totalCoins: 0,
   });
 
-  const [ticketInfo, setTicketInfo] = useState<ITicketInfo | null>(null);
+  const [canOpenBarrier, setCanOpenBarrier] = useState(false);
+  const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
+  const [shouldDisplayPrintButton, setShouldDisplayPrintButton] = useState(false);
+
+  // end initial state
+  // function refreshCredit() {
+  //   setLoadingGlobal(true);
+  //   dispatch(fetchCreditInfo({ token: token as string }))
+  //     .unwrap()
+  //     .finally(() => setLoadingGlobal(false));
+  // }
+
+  const [ticketInfo, setTicketInfo] = useState<ITicket | null>(null);
   const [payment, setPayment] = useState<Ipayment>({
     bills: {
       20: 0,
@@ -96,7 +125,7 @@ export default function PayTicketInLocation() {
       setLoadingGlobal(true);
       const req = (await getLocationById(
         token as string,
-        locationId
+        locationId,
       )) as Response;
       if (!req.state) return router.replace("/payTicket");
       const data = req.data as ILocation;
@@ -116,22 +145,25 @@ export default function PayTicketInLocation() {
       const req = (await getTicketInfoById(
         token as string,
         ticketId as string,
-        locationId as string
+        locationId as string,
       )) as Response;
-      const data = req.data as ITicketInfo;
+      const data = req.data as ITicket;
       if (!req.state) {
         setShouldDisplayTicketInfo(false);
         handleToast(
           "error",
           req.message ||
             req?.error ||
-            "Intenté nuevamente o comuniquese con administración"
+            "Intenté nuevamente o comuniquese con administración",
         );
       } else {
         setShouldDisplayTicketInfo(true);
         setTicketInfo(data);
-        if (data.estado === "pendiente") setCanPayTicket(true);
-        else  setCanPayTicket(false)
+        if (data.estado === "pendiente" || data.repago) setCanPayTicket(true);
+        else {
+          setCanPayTicket(false);
+          setShouldDisplayPrintButton(true);
+        }
       }
     } catch (error) {
       handleToast("error", `Hubo un error: ${error}`);
@@ -140,32 +172,46 @@ export default function PayTicketInLocation() {
     }
   }
 
+  
   async function payTicketRequest() {
     if (!canSubmitPayment) return;
-
     const data = {
-      amount: ticketInfo?.total_payment,
+      amount: ticketInfo?.total_a_pagar,
       paymentData: payment,
       totalPayed: paymentState.totalPayed,
-      change: paymentState.totalPayed - (ticketInfo?.total_payment as number),
+      change: paymentState.totalPayed - (ticketInfo?.total_a_pagar as number),
     };
     setCanSubmitPayment(false);
     setLoadingGlobal(true);
     setTicketId("");
     setPaymentState(initialPaymentState);
     setPayment(initialBillsCoinsInfo);
-    setCanPayTicket(false)
+    setCanPayTicket(false);
     try {
-      const req = await payTicket(token as string, ticketInfo?.ticketId as string, data) as Response;
-      if (!req.state) return handleToast('error', req?.message);
-      handleToast('success', req.message);
+      const req = (await payTicket(
+        token as string,
+        ticketInfo?.ticketId as string,
+        data,
+      )) as Response;
+      if (!req.state) {
+        setCanOpenBarrier(false);    
+        setShouldDisplayPrintButton(false)
+        return handleToast("error", req?.message);
+      }
+      setShouldDisplayPrintButton(true)
+      handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
-    } catch (error:any) {
-      handleToast('error', error?.message || 'Hubo un error, intente más tarde')
+      await getTicketInfo()
+      // setCanOpenBarrier(true);
+    } catch (error: any) {
+      handleToast(
+        "error",
+        error?.message || "Hubo un error, intente más tarde",
+      );
     } finally {
+      setShouldDisplayTicketInfo(false);
       setCanSubmitPayment(true);
       setLoadingGlobal(false);
-
     }
   }
 
@@ -177,7 +223,16 @@ export default function PayTicketInLocation() {
   const transformToCurrency = (value: number) => formatToCurrency.format(value);
 
   const transformDate = (date: string) => {
-    const newDate = new Date(date).toLocaleString();
+    const newDate = new Date(date).toLocaleString("es-MX", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
     return newDate;
   };
 
@@ -185,37 +240,28 @@ export default function PayTicketInLocation() {
     const totalBills =
       Object.entries(payment["bills"]).reduce(
         (acc, [currency, total]) => acc + Number(currency) * total,
-        0
+        0,
       ) || 0;
     const totalCoins =
       Object.entries(payment["coins"]).reduce(
         (acc, [currency, total]) => acc + Number(currency) * total,
-        0
+        0,
       ) || 0;
 
     const totalPayed = totalBills + totalCoins;
     setPaymentState({ totalPayed, totalBills, totalCoins });
     setCanSubmitPayment(
       totalBills + totalCoins > 0 &&
-        totalBills + totalCoins >= (ticketInfo?.total_payment as number)
+        totalBills + totalCoins >= (ticketInfo?.total_a_pagar as number),
     );
   };
 
-  useEffect(() => {
-    const locationIdP = params.get("id");
-    if (!locationIdP) return router.replace("/payTicket");
-    setLocationId(locationIdP);
-    getLocationInfo(locationIdP as string);
-  }, []);
-
-  useEffect(() => {
-    totalPay();
-  }, [payment]);
 
   const payTicketActions = () => {
     return (
       shouldDisplayTicketInfo &&
-      canPayTicket && (
+      canPayTicket && 
+       (
         <div className="payment-content">
           <div className="header-payment-content">
             <label>
@@ -225,8 +271,8 @@ export default function PayTicketInLocation() {
             <div className="payment-total-info">
               <label>
                 <b>Total a pagar: </b>
-                {ticketInfo?.total_payment &&
-                  transformToCurrency(ticketInfo?.total_payment)}
+                {ticketInfo?.total_a_pagar &&
+                  transformToCurrency(ticketInfo?.total_a_pagar)}
               </label>
               <label>
                 <b>Total pagado: </b>
@@ -234,20 +280,20 @@ export default function PayTicketInLocation() {
               </label>
               <label>
                 <b>Total Restante: </b>
-                {ticketInfo?.total_payment &&
-                paymentState.totalPayed <= ticketInfo.total_payment
+                {ticketInfo?.total_a_pagar &&
+                paymentState.totalPayed <= ticketInfo.total_a_pagar
                   ? transformToCurrency(
-                      ticketInfo?.total_payment - paymentState.totalPayed
+                      ticketInfo?.total_a_pagar - paymentState.totalPayed,
                     )
                   : 0}
               </label>
               <label>
                 <b>Cambio: </b>
-                {ticketInfo?.total_payment &&
+                {ticketInfo?.total_a_pagar &&
                 paymentState.totalPayed > 0 &&
-                paymentState.totalPayed > ticketInfo.total_payment
+                paymentState.totalPayed > ticketInfo.total_a_pagar
                   ? transformToCurrency(
-                      paymentState.totalPayed - ticketInfo?.total_payment
+                      paymentState.totalPayed - ticketInfo?.total_a_pagar,
                     )
                   : transformToCurrency(0)}
               </label>
@@ -362,7 +408,9 @@ export default function PayTicketInLocation() {
                       bills: {
                         ...prev.bills,
                         500:
-                          e.target.value === "" ? 0 : parseInt(e.target.value),
+                          e.target.value === ""
+                            ? 0
+                            : parseInt(e.target.value, 10),
                       },
                     }));
                   }}
@@ -495,6 +543,34 @@ export default function PayTicketInLocation() {
     );
   };
 
+  const ticketValidationLabel = () => ticketInfo?.hasValidation && (
+    <div style={{display:"flex", flexDirection:"column"}}>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>Este ticket cuenta con validacion de establecimiento</label>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Fecha/validation: " + transformDate(ticketInfo.validatedAt)}</label>
+    </div>
+  ) 
+    
+  const messageLabel = () => {
+    if(!ticketInfo?.cocheDentro) return (
+      <>
+      <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida &&  "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
+      </>
+    )
+    if (ticketInfo?.tolerancia) {
+      return (
+        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
+      );
+    }
+    if (ticketInfo?.repago) {
+      return <label>Ticket requiere nuevo pago</label>;
+    }
+    if (ticketInfo?.estado == "pagado" && !ticketInfo.repago) {
+      return (
+        <label>{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_para_salir} min`}</label>
+      );
+    }
+  };
+
   const payTicketInfoContainer = () => {
     return (
       shouldDisplayTicketInfo && (
@@ -506,36 +582,64 @@ export default function PayTicketInLocation() {
               <label>
                 <b>Información de ticket</b>
               </label>
-              <div className="ticket-info-container">
-                <p className="info-content">
-                  <b>{"Estado: "}</b>
-                  <label>{ticketInfo?.estado}</label>
-                </p>
-                <p className="info-content">
-                  <b>{"Fecha de entrada: "}</b>{" "}
-                  <label>
-                    {ticketInfo?.fecha_entrada &&
-                      transformDate(ticketInfo?.fecha_entrada)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Total a pagar/pagado:"}</b>{" "}
-                  <label>
-                    {ticketInfo?.total_payment &&
-                      transformToCurrency(ticketInfo?.total_payment)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Fecha de pago: "}</b>{" "}
-                  <label>
-                    {ticketInfo?.fechaPago &&
-                      transformDate(ticketInfo?.fechaPago as string)}
-                  </label>
-                </p>
-                <p className="info-content">
-                  <b>{"Total de tiempo(hrs): "}</b>{" "}
-                  <label> {ticketInfo?.total_time}</label>
-                </p>
+              <div
+                className={cn("ticket-info-container", {
+                  hasToPay: ticketInfo?.repago,
+                               })}
+
+             
+              >
+                {messageLabel()}
+                {ticketValidationLabel()}
+                <div className="ticket-info-row">
+                  <p className="info-content">
+                    <b>{"Estado: "}</b>
+                    <label>{ticketInfo?.estado}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Fecha de entrada: "}</b>{" "}
+                    <label>
+                      {ticketInfo?.fechaEntrada &&
+                        transformDate(ticketInfo?.fechaEntrada)}
+                    </label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Total de tiempo(hrs): "}</b>{" "}
+                    <label> {ticketInfo?.total_time}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Total a pagar:"}</b>{" "}
+                    <label>
+                      {
+                          ticketInfo?.total_a_pagar && transformToCurrency(ticketInfo?.total_a_pagar)
+                       }
+                    </label>
+                  </p>
+                </div>
+                { ticketInfo?.estado === "pagado" &&                <div className="ticket-payment-Info">
+                  <label htmlFor="">Informacion de ultimo pago</label>
+                  <p className="info-content"> 
+                  <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
+                  <label htmlFor="">{ticketInfo?.tiempo_despues_de_utimo_pago}</label>
+                  </p>
+                  <b>Historial de pagos de ticket</b>
+                  {ticketInfo?.dataPayment.map((item, index) => (
+                    <div key={item.id} className="ticket-info-content">
+                      <p className="info-content">
+                        <b>{"No. de pago: "}</b>{" "}
+                        <label> {index + 1}</label>
+                      </p>
+                      <p className="info-content">
+                        <b>{"Fecha de pago: "}</b>{" "}
+                        <label> {transformDate(item?.fechaPago)}</label>
+                      </p>
+                      <p className="info-content">
+                        <b>{"Total pagado: "}</b>{" "}
+                        <label> {transformToCurrency(item?.amount || 0)}</label>
+                      </p>
+                    </div>
+                  ))}
+                </div>}
               </div>
             </div>
           )}
@@ -544,54 +648,125 @@ export default function PayTicketInLocation() {
     );
   };
 
+  // useEffects
+
+  useEffect(() => {
+    const locationIdP = params.get("id");
+    if (!locationIdP) return router.replace("/ticketPayment");
+    setLocationId(locationIdP);
+    getLocationInfo(locationIdP as string);
+  }, []);
+
+  useEffect(() => {
+    totalPay();
+  }, [payment]);
+
+
+
+  // ends useEffects
+
+  const renderButtonToOpenBarrier = () => {
+      return canOpenBarrier && (
+        <div style={{display:"flex", justifyContent:"flex-end"}}>
+          <ButtonOpenBarrier ShouldDisplay={canOpenBarrier} handleShouldDisplay={setCanOpenBarrier}/>
+        </div>
+      )
+  }
+  const renderButtonToPrintTicketReceive = () => {
+      return shouldDisplayPrintButton && (
+        <div style={{display:"flex", justifyContent:"flex-end"}}>
+          {!displayPdfViewe ? (
+
+            <button className="primary-button" onClick={()=> setDisplayPdfViewer(true)}>
+            Imprimir recibo
+          </button>
+          ) :  (
+          <button className="primary-button" onClick={()=> setDisplayPdfViewer(false)}>
+            Cerrar vista de impresion
+          </button>
+          )
+          }
+        </div>
+      )
+  }
+
+  const PDFViewerComponent = () => {
+  return (
+    displayPdfViewe &&
+      <PDFViewer style={{ width: "100%", height: "40vh" }}>
+        <TicketPDF  ticket={ticketInfo as ITicket} locationTitle={locationInfo?.title as string} />
+      </PDFViewer> 
+    )
+
+  }
   return (
     <>
-      <div className="main-content">
-        <div className="header-container">
-          <div className="options-header">
-            <h1 className="main-header">Pago De ticket</h1>
-            <a onClick={() => router.push("/payTicket")}>Regresar</a>
-          </div>
-          <b>Datos de ubicación</b>
-          <div className="content-info">
-            <label>
-              <b>{"Ubicación: "}</b>
-              {locationInfo?.title}
-            </label>
-            <label>
-              <b>{"Dirección: "}</b>
-              {locationInfo?.address}
-            </label>
-            <label>
-              <b>{"Contacto: "}</b>
-              {locationInfo?.contact}
-            </label>
-          </div>
+      <div className="main-content first">
+        {PDFViewerComponent()}
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            background: "white",
+            zIndex: 1,
+            margin: 0,
+            padding: 0,
+          }}
+        >
         </div>
-
-        <label>
-          <b>Ingrese el código qr del ticket</b>
-        </label>
-        <div className="qr-input-container">
-          <input
-            type="text"
-            placeholder="Ticket ID"
-            className="filter-input"
-            value={ticketId}
-            onChange={(e) => {
-            const formattedValue = e.target.value.replace(/'/g, "-");
-              setTicketId(formattedValue);
-            }}
-          />
-          <div className="trash-icon-container" onClick={() => setTicketId("")}>
-            <TrashIcon />
-          </div>
-          <button onClick={getTicketInfo} className="primary-button">
-            Buscar
-          </button>
-        </div>
-        {payTicketInfoContainer()}
-        {payTicketActions()}
+          <>
+            <div className="header-container">
+              <div className="options-header">
+                <h1 className="main-header">Pago De ticket</h1>
+                <a onClick={() => router.replace("/payTicket")}>Regresar</a>
+              </div>
+              <b>Datos de ubicación</b>
+              <div className="content-info">
+                <label>
+                  <b>{"Ubicación: "}</b>
+                  {locationInfo?.title}
+                </label>
+                <label>
+                  <b>{"Dirección: "}</b>
+                  {locationInfo?.address}
+                </label>
+                <label>
+                  <b>{"Contacto: "}</b>
+                  {locationInfo?.contact}
+                </label>
+              </div>
+            </div>
+            {renderButtonToOpenBarrier()}
+            {renderButtonToPrintTicketReceive()}
+            <label>
+              <b>Ingrese el código qr del ticket</b>
+            </label>
+            <div className="qr-input-container">
+              <input
+                type="text"
+                placeholder="Ticket ID"
+                className="filter-input"
+                value={ticketId}
+                onChange={(e) => {
+                  const formattedValue = e.target.value.replace(/'/g, "-");
+                  setTicketId(formattedValue);
+                }}
+              />
+              <div
+                className="trash-icon-container"
+                onClick={() => setTicketId("")}
+              >
+                <TrashIcon />
+              </div>
+              <button onClick={getTicketInfo} className="primary-button">
+                Buscar
+              </button>
+            </div>
+            <div className="">
+            {payTicketInfoContainer()}
+            {payTicketActions()}
+            </div>
+          </>
       </div>
     </>
   );
