@@ -73,9 +73,9 @@ export const TicketPDF = (props: TicketProps) => {
             </Text>
           </View>
           <View style={styles.section}>
+            <Text>{"RFC: COTJ92052353"}</Text>
             <Text>
-              Para cualquier información, comuníquese a este número: 12323123 y
-              al correo ejemplo@correo.com
+                Gracias por usar nuestro serviio. Vuelva pronto
             </Text>
           </View>
         </View>

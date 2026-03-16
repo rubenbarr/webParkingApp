@@ -24,6 +24,13 @@ export interface IDataPayment {
   totalPayed:number;
   id: string;
 }
+interface validationRule {
+      "rate": number
+      "time": number
+      "type": string
+      "unit": string
+      "discount": boolean
+}
 export interface ITicket {
   cerrado: boolean;
   cocheDentro: boolean;
@@ -53,4 +60,6 @@ export interface ITicket {
   validatedAt: string;
   validatedBy: string;
   hasValidation: boolean;
+  validationRule: validationRule
+  storeName: string
 }

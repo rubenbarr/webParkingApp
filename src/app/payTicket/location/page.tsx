@@ -543,9 +543,11 @@ export default function PayTicketInLocation() {
     );
   };
 
-  const ticketValidationLabel = () => ticketInfo?.hasValidation && (
+  const ticketValidationLabel = () => ticketInfo?.parkingValidation && (
     <div style={{display:"flex", flexDirection:"column"}}>
      <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>Este ticket cuenta con validacion de establecimiento</label>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Tipo de validacion: " + ticketInfo.validationRule.type }</label>
+     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Validado por: " + ticketInfo.storeName }</label>
      <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Fecha/validation: " + transformDate(ticketInfo.validatedAt)}</label>
     </div>
   ) 
