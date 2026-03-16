@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
 interface TicketProps {
   ticket: ITicket;
   locationTitle: string;
-  ref: any
+  ref?: any
 }
 
 export const TicketPDF = (props: TicketProps) => {
