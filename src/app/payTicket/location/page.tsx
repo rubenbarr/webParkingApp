@@ -3,7 +3,7 @@
 
 import "./payticketlocation.scss";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getLocationById } from "@/api/locationApi";
@@ -43,6 +43,12 @@ export default function PayTicketInLocation() {
   const router = useRouter();
   const params = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
+
+    const elementRef = useRef<HTMLElement>(null);
+
+    const scrollToElement = () => {
+      elementRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
 
   // end of global statements/data
@@ -679,7 +685,7 @@ export default function PayTicketInLocation() {
         <div style={{display:"flex", justifyContent:"flex-end"}}>
           {!displayPdfViewe ? (
 
-            <button className="primary-button" onClick={()=> setDisplayPdfViewer(true)}>
+            <button className="primary-button" onClick={()=> {setDisplayPdfViewer(true); scrollToElement()}}>
             Imprimir recibo
           </button>
           ) :  (
@@ -696,7 +702,7 @@ export default function PayTicketInLocation() {
   return (
     displayPdfViewe &&
       <PDFViewer style={{ width: "100%", height: "40vh" }}>
-        <TicketPDF  ticket={ticketInfo as ITicket} locationTitle={locationInfo?.title as string} />
+        <TicketPDF  ticket={ticketInfo as ITicket} locationTitle={locationInfo?.title as string} ref={elementRef}/>
       </PDFViewer> 
     )
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
   Document,
@@ -8,6 +9,7 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { ITicket } from "@/types/ticket";
+import { transformToCurrency } from "@/assets/utils";
 const styles = StyleSheet.create({
   page: {
     padding: 10,
@@ -32,12 +34,22 @@ const styles = StyleSheet.create({
 interface TicketProps {
   ticket: ITicket;
   locationTitle: string;
+  ref: any
 }
 
 export const TicketPDF = (props: TicketProps) => {
   const { ticket, locationTitle } = props;
+
+  const getCurrency = (data:ITicket) => {
+    if (!data) return transformToCurrency(0)
+    const total = data.dataPayment.reduce(
+                (acc, payment) =>  acc + payment.amount,
+                0,
+              )
+    return transformToCurrency(total)
+  }
   return (
-    <Document>
+    <Document ref= {props.ref}>
       <Page size={[155, 300]} style={styles.page}>
         <View style={styles.section}>
           <View style={{display:"flex", width:"100%", alignItems:"center", justifyContent:"center"}}>
@@ -65,15 +77,12 @@ export const TicketPDF = (props: TicketProps) => {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Total pagado: </Text>
             <Text>
-              {ticket.dataPayment.reduce(
-                (acc, payment) => acc + payment.amount,
-                0,
-              )}{" "}
+              {getCurrency(ticket)}{" "}
               MXN
             </Text>
           </View>
           <View style={styles.section}>
-            <Text>{"RFC: COTJ92052353"}</Text>
+            {/* <Text>{"RFC: COTJ92052353"}</Text> */}
             <Text>
                 Gracias por usar nuestro serviio. Vuelva pronto
             </Text>
