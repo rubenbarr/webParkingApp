@@ -49,7 +49,7 @@ export default function Page() {
     new Date().toISOString().split("T")[0],
   );
   const [ticketsPage, setTicketsPage] = useState(1);
-  const [ticketsLimit, setTicketsLimit] = useState(2);
+  const [ticketsLimit, setTicketsLimit] = useState(100);
 
   function getLocationInfo(token: string, locationId: string) {
     setLoadingGlobal(true);
