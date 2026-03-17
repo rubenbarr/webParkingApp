@@ -326,12 +326,12 @@ export default function Page() {
                 <label>
                   <b>{"Total de conteo: "}</b> {data?.totalCarsIn}
                 </label>
-                <label>
+                {/* <label>
                   <b>{"Total de coches: "}</b>{data?.totalPayed}
-                </label>
-                <label>
+                </label> */}
+                {/* <label>
                   <b>{"total de Motos: "}</b>{data?.totalPaid }
-                </label>
+                </label> */}
               </div>
             </div>
 
