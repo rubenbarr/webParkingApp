@@ -62,4 +62,5 @@ export interface ITicket {
   hasValidation: boolean;
   validationRule: validationRule
   storeName: string
+  minutos_dentro: string
 }

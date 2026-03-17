@@ -555,7 +555,7 @@ export default function PayTicketInLocation() {
       <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida &&  "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
       </>
     )
-    if (ticketInfo?.tolerancia) {
+    if (ticketInfo?.tolerancia && ticketInfo.estado === 'pendiente') {
       return (
         <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
       );
@@ -603,9 +603,14 @@ export default function PayTicketInLocation() {
                     </label>
                   </p>
                   <p className="info-content">
-                    <b>{"Total de tiempo(hrs): "}</b>{" "}
+                    <b>{"Total de minutos(hrs): "}</b>{" "}
+                    <label> {ticketInfo?.minutos_dentro}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Horas por cobrar: "}</b>{" "}
                     <label> {ticketInfo?.total_time}</label>
                   </p>
+
                   <p className="info-content">
                     <b>{"Total a pagar:"}</b>{" "}
                     <label>
