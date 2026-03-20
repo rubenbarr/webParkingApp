@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { validationPayload } from "@/types/stores";
 import { fetchWithTimeout, GET, LOCALHOST, PATCH, POST } from "./authApi";
 import { headers } from "./locationApi";
 
@@ -58,13 +59,14 @@ export async function payTicket(token: string, ticketId: string, data: object) {
   }
 }
 
-export async function validateTicketReq(token: string, ticketId: string) {
+export async function validateTicketReq(token: string, ticketId: string, validationPayload: validationPayload) {
   try {
     const req = await fetchWithTimeout(
       `${LOCALHOST}/api/ticketRoute/ticketValidation/${ticketId}`,
       {
         method: PATCH,
         headers: { ...headers(token) },
+        body: JSON.stringify(validationPayload)
       },
     );
     return req;

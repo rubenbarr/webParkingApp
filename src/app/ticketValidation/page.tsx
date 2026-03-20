@@ -1,149 +1,523 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client"
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
-import { useAuth } from '@/context/AuthContext';
-import { validateTicketReq } from '@/api/ticketsApi';
-import { Response } from '@/api/usersApi';
+import React, { useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+import { useAuth } from "@/context/AuthContext";
+import { validateTicketReq } from "@/api/ticketsApi";
+import { Response } from "@/api/usersApi";
+import { getMyLocations, getStoresInLocation } from "@/api/locationApi";
+import { Location } from "@/types/Locations";
+import { RefreshCwIcon } from "lucide-react";
+
+import type { IStore, Validations } from "@/types/stores";
+import Toggle from "@/components/Toggle/ToggleComp";
+
+interface location {
+  id: string;
+  value: string;
+}
+
+interface Store {
+  id: string;
+  value: string;
+  validations: Validations[];
+}
 
 export default function TicketValidation() {
-  const {userType, token, setLoadingGlobal, isLoadingGlobal, } = useAuth();
+  const { userType, token, setLoadingGlobal, isLoadingGlobal, handleToast } =
+    useAuth();
+
   const qrRef = useRef<HTMLDivElement>(null);
   const qrInstance = useRef<Html5Qrcode>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [scanning, setIsScanning] = useState(false);
   const [shouldDisplayQrReader, setshouldDisplayQrReader] = useState(false);
-  
 
-  const stopScanner = async (eraseResult:boolean) => {
+  const [locationsPage, SetLocationsPage] = useState(1);
+  const [locationsLimit, setLocationsLimit] = useState(50);
+
+  const [locations, setLocations] = useState<location[]>([
+    { id: "", value: "Selecciona una ubicacion" },
+  ]);
+  const [selectedLocation, setSelectedLocation] = useState({
+    id: "",
+    value: "Selecciona una establecimiento",
+  });
+
+  const [storesPage, SetStoresPage] = useState(1);
+  const [storesLimit, setStoresLimit] = useState(50);
+
+  const [stores, setStores] = useState<location[]>([
+    { id: "", value: "Selecciona una ubicacion" },
+  ]);
+  const [selectedStore, setSelectedStore] = useState<Store>({
+    id: "",
+    value: "Selecciona un establecimiento",
+    validations: [],
+  });
+  const [validations, setValidations] = useState<Validations[]>([
+    { type: "", rate: 0, time: 0, unit: "", discount: false },
+  ]);
+  const [selectedValidation, setSelectedValidation] = useState<Validations>({
+    type: "Selecciona un tipo de validacion",
+    rate: 0,
+    time: 0,
+    unit: "",
+    discount: false,
+  });
+
+  const [autoValidation, setAutoValidation] = useState(true);
+  const [validationPayload, setValidationPayload] = useState({
+    storeId: "",
+    type: "",
+    locationId: "",
+  });
+
+  const [handleValidation, setHandleValidation] = useState(true);
+
+  async function getLocations() {
+    setLoadingGlobal(true);
     try {
-      if (eraseResult) setResult(null)
-      if(scanning && qrInstance.current) {
-       await qrInstance.current.stop();
+      const req = (await getMyLocations(
+        token as string,
+        locationsPage,
+        locationsLimit,
+      )) as Response;
+      if (!req.state)
+        return handleToast("error", "Hubo un error, comuniquese con ");
+      const data = req.data as Location[];
+      if (data.length > 0 && locationsPage === 1 && locations.length <= 1) {
+        const locations = data.map((item) => ({
+          id: item.locationId,
+          value: item.title,
+        }));
+        setLocations([
+          { id: "", value: "Selecciona una ubicacion" },
+          ...locations,
+        ]);
+      }
+    } catch (error) {
+      handleToast("error", "Hubo un error, comuniquese con ");
+    } finally {
+      setLoadingGlobal(false);
+    }
+  }
+
+  async function getStoresReq(selected: Store) {
+    if (!selected.value || selected.id == "") return;
+    setLoadingGlobal(true);
+    try {
+      const req = (await getStoresInLocation(
+        selected.id,
+        token as string,
+        locationsPage,
+        locationsLimit,
+      )) as Response;
+      if (!req.state)
+        return handleToast("error", "Hubo un error, comuniquese con ");
+      const data = req.data as IStore[];
+      if (data.length > 0 && storesPage === 1 && stores.length <= 1) {
+        const stores = data.map((item) => ({
+          id: item.storeId,
+          value: item.title,
+          validations: item.validations,
+        }));
+        setStores([
+          { id: "", value: "Selecciona una establecimiento" },
+          ...stores,
+        ]);
+      }
+    } catch (error) {
+      handleToast("error", "Hubo un error, comuniquese con ");
+    } finally {
+      setLoadingGlobal(false);
+    }
+  }
+
+  const stopScanner = async (eraseResult: boolean) => {
+    try {
+      if (eraseResult) setResult(null);
+      if (scanning && qrInstance.current) {
+        await qrInstance.current.stop();
         setIsScanning(false);
         setError(null);
       }
-    } catch(error) {
-      console.log(error)
+    } catch (error) {
+      handleToast("error", "ups, ubo error refresque la pagina");
     }
-  }
+  };
 
   const startScanner = async () => {
     setResult(null);
     setError(null);
+    navigator.mediaDevices.getUserMedia({ video: true });
+    const payloadForValidation = {
+      storeId: selectedStore.id,
+      type: selectedValidation.type,
+      locationId: selectedLocation.id,
+    };
+
+    setValidationPayload(payloadForValidation);
     try {
-      if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices ) {
-        setError("Es posible que tu navegador no soporte tu camara, cambia de navegador a google Chrome")
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setError(
+          "Es posible que tu navegador no soporte tu camara, cambia de navegador a google Chrome",
+        );
         return;
       }
-      
+
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === "videoinput");
-      
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
       if (videoDevices.length === 0) {
-        setError("No se encontro camara para navegar, no es posible realizar validacion")
+        setError(
+          "No se encontro camara para navegar, no es posible realizar validacion",
+        );
         return;
       }
-      
 
       const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
 
       let cameraId = videoDevices[0].deviceId;
 
       if (isMobile) {
-        const backCamera = videoDevices.find(d => 
-          d.label.toLowerCase().includes("back") ||
-          d.label.toLowerCase().includes("rear") || 
-          d.label.toLowerCase().includes("environment")
-        )
+        const backCamera = videoDevices.find(
+          (d) =>
+            d.label.toLowerCase().includes("back") ||
+            d.label.toLowerCase().includes("rear") ||
+            d.label.toLowerCase().includes("environment"),
+        );
         if (backCamera) cameraId = backCamera.deviceId;
       }
-      
-      qrInstance.current = new Html5Qrcode("qr-reader")
+
+      qrInstance.current = new Html5Qrcode("qr-reader");
       setIsScanning(true);
-      await qrInstance.current.start(cameraId , 
+      await qrInstance.current.start(
+        cameraId,
         {
           fps: 10,
-          qrbox: {width:250, height: 250}
+          qrbox: { width: 250, height: 250 },
         },
         async (decodedText) => {
           await stopScanner(false);
           setResult(decodedText);
         },
-        (errorMessage) => {
-          
-        }
-      )
+        (errorMessage) => {},
+      );
       setshouldDisplayQrReader(true);
     } catch (error) {
-
-      setError("Error activando tu camara, comunicate con administracion" + `${error}`)
+      setError(
+        "Error activando tu camara, comunicate con administracion" + `${error}`,
+      );
       setshouldDisplayQrReader(false);
-      
     }
-  }
+  };
 
-  const validateTicket = async () =>  {
+  const validateTicket = async () => {
     if (!result) return;
     try {
       setLoadingGlobal(true);
-      const data = await validateTicketReq(token as string, result as string) as Response;
+      const data = (await validateTicketReq(
+        token as string,
+        result as string,
+        validationPayload,
+      )) as Response;
       if (!data.state) {
-        setError(data?.message ||  "Hubo un error validando ticket, consulte a administracion")
+        setError(
+          data?.message ||
+            "Hubo un error validando ticket, consulte a administracion",
+        );
+        handleToast(
+          "error",
+          data?.message ||
+            "Hubo un error validando ticket, consulte a administracion",
+        );
       } else {
-        setError("Se valido correctamente el ticket")
+        handleToast("success", "Ticket Validado correctamente");
+        setError("Se valido correctamente el ticket");
+        cleanup();
       }
-    } catch(error: unknown | Response | any) {
-      const errorMessage = error?.message || "Hubo un error validando ticket, consulte a administracion"
-      setError(errorMessage)
+    } catch (error: unknown | Response | any) {
+      const errorMessage =
+        error?.message ||
+        "Hubo un error validando ticket, consulte a administracion";
+      setError(errorMessage);
+      handleToast("error", errorMessage);
     } finally {
-      setLoadingGlobal(false)
+      setLoadingGlobal(false);
     }
+  };
 
-
+  function onLocationChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    const selected = locations.find((l) => l.value === value) as Store;
+    if (selected) {
+      setSelectedLocation(selected);
+      getStoresReq(selected);
+    }
+  }
+  function onStoreChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    const storeSelected = stores.find((l) => l.value === value) as Store;
+    if (storeSelected) {
+      if (storeSelected.id != "") {
+        setValidations([
+          {
+            type: "Selecciona un tipo de validacion",
+            rate: 0,
+            time: 0,
+            unit: "",
+            discount: false,
+          },
+          ...storeSelected.validations,
+        ]);
+      }
+      setSelectedStore(storeSelected);
+    }
+  }
+  function onValidationChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    const validationSelected = validations.find((l) => l.type === value);
+    if (validationSelected) {
+      setSelectedValidation(validationSelected);
+    }
   }
 
+  function cleanup() {
+    setSelectedLocation({
+      id: "",
+      value: "Selecciona una establecimiento",
+    });
+    setSelectedStore({
+      id: "",
+      value: "Selecciona un establecimiento",
+      validations: [],
+    });
+    setSelectedValidation({
+      type: "Selecciona un tipo de validacion",
+      rate: 0,
+      time: 0,
+      unit: "",
+      discount: false,
+    });
+    setResult("");
+  }
 
+  async function refresh() {
+    cleanup();
+    await getLocations();
+  }
   useEffect(() => {
-    if (result) {
+    if (result && result.length >= 36) {
       stopScanner(false);
-      validateTicket()
-    } 
-  },[result])
-
+      validateTicket();
+    }
+  }, [result]);
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia( {video: true})
-  },[])
+    if (false) {
+      navigator.mediaDevices.getUserMedia({ video: true });
+    }
+    getLocations();
+  }, []);
 
   const qrReader = () => {
     return (
-      !error && 
-      <div id={'qr-reader'} ref={qrRef} style={{width: "300px"}}>
+      !error && (
+        <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
+      )
+    );
+  };
+  const ErrorLabel = () => {
+    if (error) {
+      return (
+        <div>
+          <label>{error}</label>
+        </div>
+      );
+    }
+  };
+
+  const LocationListElements = () => {
+    return (
+      userType && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <b>Ubicaciones asignadas, Seleccione una ubicacion:</b>
+          <select
+            name={"locations"}
+            onChange={onLocationChange}
+            className={"main-input"}
+            value={selectedLocation.value}
+          >
+            {locations &&
+              locations.map((i) => (
+                <option key={i.id} value={i.value}>
+                  {i.value}
+                </option>
+              ))}
+          </select>
+        </div>
+      )
+    );
+  };
+
+  const StoresListElement = () => {
+    return (
+      selectedLocation.id !== "" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <b>Lista de establecimientos, Seleccione 1:</b>
+          {stores.length === 0 ||
+          (stores.length === 1 && stores[0].id == "") ? (
+            <h1>No cuentas con establecimientos asignados</h1>
+          ) : (
+            <select
+              name={"stores"}
+              onChange={onStoreChange}
+              className={"main-input"}
+              value={selectedStore.value}
+            >
+              {stores &&
+                stores.map((i) => (
+                  <option key={i.id} value={i.value}>
+                    {i.value}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
+      )
+    );
+  };
+  const ValidationsItems = () => {
+    return (
+      selectedStore.id !== "" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <b>Seleccione una validation</b>
+          <select
+            name={"validaciones"}
+            onChange={onValidationChange}
+            className={"main-input"}
+            value={selectedValidation.type}
+          >
+            {validations &&
+              validations.map((i, index) => (
+                <option key={index++} value={i.type}>
+                  {i.type}
+                </option>
+              ))}
+          </select>
+        </div>
+      )
+    );
+  };
+
+  const StoreInformationElement = () => {
+    return (
+      selectedStore.id !== "" && (
+        <div>
+          <b>{"Establecimiento: "} </b>
+          <h1>{selectedStore.value}</h1>
+          {ValidationsItems()}
+        </div>
+      )
+    );
+  };
+
+  const autoValidationElement = () => {
+    if (!scanning) {
+      return (
+        <button className="primary-button" onClick={startScanner}>
+          Validar Ticket con camara
+        </button>
+      );
+    }
+    return (
+      <button className="primary-button" onClick={() => stopScanner(true)}>
+        Cerrar camara y cancelar
+      </button>
+    );
+  };
+
+  const manualValidationElement = () => {
+    if (
+      selectedLocation.id == "" ||
+      selectedStore.id === "" ||
+      selectedValidation.type === "Selecciona un tipo de validacion"
+    )
+      return;
+    return (
+      <div>
+        <h1>Coloque la id del codigo</h1>
+        <input
+          type="text"
+          className="main-input"
+          value={result || ""}
+          onChange={(e) => setResult(e.target.value)}
+        />
+        .
+      </div>
+    );
+  };
+  const ValidationButtonElement = () => {
+    if (
+      selectedLocation.id == "" ||
+      selectedStore.id === "" ||
+      selectedValidation.type == "Selecciona un tipo de validacion"
+    )
+      return;
+    else {
+      return (
+        <>
+          <Toggle
+            checked={autoValidation}
+            onChange={() => {
+              setAutoValidation((prev) => !prev);
+            }}
+            leftLabel="Validacion Manual"
+            rightLabel="Validacion Automatica"
+          />
+          {autoValidation ? autoValidationElement() : manualValidationElement()}
+        </>
+      );
+    }
+  };
+
+  const validationContent = () => {
+    return (
+      <>
+        <div className="actions">
+          <button className="primary-button secondary center" onClick={refresh}>
+            <RefreshCwIcon />
+          </button>
+        </div>
+        {ErrorLabel()}
+        {qrReader()}
+        {LocationListElements()}
+        {StoresListElement()}
+        {StoreInformationElement()}
+        {ValidationButtonElement()}
+      </>
+    );
+  };
+  const cancelationContent = () => {
+    return (
+      <div>
+        <h1>Cancelacion de Validacion</h1>
       </div>
     )
   }
-  const ErrorLabel = () => {
-    if(error) {
-      return (
-        <div>
-        <label>{error}</label>
-        </div>
-      )
-    }
-  }
-
   return (
-    <div className='main-content'>
-        <h2 className='main-header'>Validacion de ticket</h2>
-      {!scanning ? 
-      <button className='primary-button' onClick={startScanner}>Validar Ticket</button> : 
-      <button className='primary-button' onClick={() => stopScanner(true)}>Cancelar</button> }
-      {ErrorLabel()}
-      {qrReader()}
-      {/* {result && ( <label>{result}</label>)} */}
+    <div className="main-content">
+      <h2 className="main-header">Validacion de ticket</h2>
+      <button className="primary-button secondary" onClick={() => {setHandleValidation(prep => !prep)}}>{ handleValidation ? "Cancelar validacion" : "Validar ticket"}</button>
+      {
+        handleValidation ? 
+        validationContent() :
+          cancelationContent()
+      }
     </div>
-  )
+  );
 }

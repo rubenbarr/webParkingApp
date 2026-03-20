@@ -29,6 +29,21 @@ export async function getLocations(token: string, page: number, limit: number) {
   }
 }
 
+export async function getStoresInLocation(locationId:string, token: string, page: number, limit: number) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/locations_route/getStores/${locationId}?page=${page}&limit=${limit}`,
+      {
+        method: GET,
+        headers: headers(token),
+      }
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}
+
 export async function getMyLocations(token: string, page: number, limit: number) {
   try {
     const req = await fetchWithTimeout(

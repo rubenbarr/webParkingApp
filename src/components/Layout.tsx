@@ -138,6 +138,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div onClick={() => handleSideMenu("/credits")} className="">
           Creditos
         </div>
+        <div onClick={() => handleSideMenu("/ticketValidation")} className="">
+          Validar ticket
+        </div>
       </div>
       {buttonMenu()}
     </>
