@@ -554,7 +554,7 @@ export default function TicketValidation() {
             setHandleCancValidation((prep) => !prep);
           }}
         >
-          {handleCancelValidation
+          {!handleCancelValidation
             ? "Cancelar ticket Con camara"
             : "Cerrar camara y cancelar"}
         </button>
