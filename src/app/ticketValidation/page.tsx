@@ -8,7 +8,7 @@ import { cancelValidationReq, validateTicketReq } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 import { getMyLocations, getStoresInLocation } from "@/api/locationApi";
 import { Location } from "@/types/Locations";
-import { RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon, Trash2Icon, TrashIcon } from "lucide-react";
 
 import type { IStore, Validations } from "@/types/stores";
 import Toggle from "@/components/Toggle/ToggleComp";
@@ -156,13 +156,12 @@ export default function TicketValidation() {
     setResult(null);
     setError(null);
 
-      const payloadForValidation = {
-        storeId: selectedStore.id,
-        type: selectedValidation.type,
-        locationId: selectedLocation.id
-      }
+    const payloadForValidation = {
+      storeId: selectedStore.id,
+      type: selectedValidation.type,
+      locationId: selectedLocation.id
+    }
       setValidationPayload(payloadForValidation);
-
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         setError(
@@ -264,15 +263,15 @@ export default function TicketValidation() {
       if (!data.state) {
         setError(
           data?.message ||
-            "Hubo un error validando ticket, consulte a administracion",
+            "Hubo un error cancelando validacion ticket, consulte a administracion",
         );
         handleToast(
           "error",
           data?.message ||
-            "Hubo un error validando ticket, consulte a administracion",
+            "Hubo un error cancelando validacion, consulte a administracion",
         );
       } else {
-        handleToast("success", "Ticket Validado correctamente");
+        handleToast("success", "Validacion de ticket cancelada correctamente");
         // setError("Se valido correctamente el ticket");
         cleanup();
       }
@@ -351,12 +350,12 @@ export default function TicketValidation() {
 
   useEffect(() => {
     if (result && result.length >= 36) {
-      stopScanner(false);
       if (handleValidation) {
         validateTicket();
       } else {
         cancelTicketValidation();
       }
+      stopScanner(false);
     }
   }, [result]);
 
@@ -492,12 +491,27 @@ export default function TicketValidation() {
       return;
     return (
       <div>
-        <h1>Coloque la id del codigo</h1>
+        <div style={{display:"flex", flexDirection:"row", alignItems:"center", gap:10, marginBottom:10}}>
+          <b>Coloque la id del codigo</b>
+          <div
+            className="trash-icon-container"
+            onClick={() => setResult("")}
+            >
+          <TrashIcon />
+          </div>
+        </div>
         <input
           type="text"
           className="main-input"
           value={result || ""}
-          onChange={(e) => setResult(e.target.value)}
+          onChange={(e) => {
+              const payloadForValidation = {
+              storeId: selectedStore.id,
+              type: selectedValidation.type,
+              locationId: selectedLocation.id
+            }
+            setValidationPayload(payloadForValidation);
+            setResult(e.target.value)}}
         />
       </div>
     );
@@ -566,7 +580,15 @@ export default function TicketValidation() {
       </>
     ) : (
       <div>
-        <b>Validacion manual, coloque el id del ticket</b>
+        <div style={{display:"flex", flexDirection:"row", alignItems:"center", gap:10, marginBottom:10}}>
+          <b>Validacion manual, coloque el id del ticket</b>
+          <div
+            className="trash-icon-container"
+            onClick={() => setResult("")}
+            >
+          <TrashIcon />
+          </div>
+        </div>
         <input
           type="text"
           className="main-input"
