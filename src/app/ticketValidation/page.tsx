@@ -4,7 +4,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "@/context/AuthContext";
-import { validateTicketReq } from "@/api/ticketsApi";
+import { cancelValidationReq, validateTicketReq } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 import { getMyLocations, getStoresInLocation } from "@/api/locationApi";
 import { Location } from "@/types/Locations";
@@ -70,6 +70,7 @@ export default function TicketValidation() {
   });
 
   const [autoValidation, setAutoValidation] = useState(true);
+  const [autoCancelValidation, setAutoCancelValidation] = useState(true);
   const [validationPayload, setValidationPayload] = useState({
     storeId: "",
     type: "",
@@ -77,6 +78,7 @@ export default function TicketValidation() {
   });
 
   const [handleValidation, setHandleValidation] = useState(true);
+  const [handleCancelValidation, setHandleCancValidation] = useState(true);
 
   async function getLocations() {
     setLoadingGlobal(true);
@@ -153,13 +155,14 @@ export default function TicketValidation() {
   const startScanner = async () => {
     setResult(null);
     setError(null);
-    const payloadForValidation = {
-      storeId: selectedStore.id,
-      type: selectedValidation.type,
-      locationId: selectedLocation.id,
-    };
 
-    setValidationPayload(payloadForValidation);
+      const payloadForValidation = {
+        storeId: selectedStore.id,
+        type: selectedValidation.type,
+        locationId: selectedLocation.id
+      }
+      setValidationPayload(payloadForValidation);
+
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         setError(
@@ -250,6 +253,40 @@ export default function TicketValidation() {
     }
   };
 
+  const cancelTicketValidation = async () => {
+    if (!result) return;
+    try {
+      setLoadingGlobal(true);
+      const data = (await cancelValidationReq(
+        token as string,
+        result as string,
+      )) as Response;
+      if (!data.state) {
+        setError(
+          data?.message ||
+            "Hubo un error validando ticket, consulte a administracion",
+        );
+        handleToast(
+          "error",
+          data?.message ||
+            "Hubo un error validando ticket, consulte a administracion",
+        );
+      } else {
+        handleToast("success", "Ticket Validado correctamente");
+        // setError("Se valido correctamente el ticket");
+        cleanup();
+      }
+    } catch (error: unknown | Response | any) {
+      const errorMessage =
+        error?.message ||
+        "Hubo un error validando ticket, consulte a administracion";
+      setError(errorMessage);
+      handleToast("error", errorMessage);
+    } finally {
+      setLoadingGlobal(false);
+    }
+  };
+
   function onLocationChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value;
     const selected = locations.find((l) => l.value === value) as Store;
@@ -303,16 +340,23 @@ export default function TicketValidation() {
       discount: false,
     });
     setResult("");
+    setHandleValidation(true);
+    setHandleCancValidation(false);
   }
 
   async function refresh() {
     cleanup();
     await getLocations();
   }
+
   useEffect(() => {
     if (result && result.length >= 36) {
       stopScanner(false);
-      validateTicket();
+      if (handleValidation) {
+        validateTicket();
+      } else {
+        cancelTicketValidation();
+      }
     }
   }, [result]);
 
@@ -328,6 +372,7 @@ export default function TicketValidation() {
       )
     );
   };
+
   const ErrorLabel = () => {
     if (error) {
       return (
@@ -454,7 +499,6 @@ export default function TicketValidation() {
           value={result || ""}
           onChange={(e) => setResult(e.target.value)}
         />
-        .
       </div>
     );
   };
@@ -490,7 +534,7 @@ export default function TicketValidation() {
             <RefreshCwIcon />
           </button>
         </div>
-        {ErrorLabel()}
+        {/* {ErrorLabel()} */}
         {qrReader()}
         {LocationListElements()}
         {StoresListElement()}
@@ -499,22 +543,65 @@ export default function TicketValidation() {
       </>
     );
   };
+
+  const autoCancellationContent = () => {
+    return autoCancelValidation ? (
+      <>
+        <button
+          className="primary-button secondary"
+          onClick={() => {
+            startScanner();
+            setHandleCancValidation((prep) => !prep);
+          }}
+        >
+          {handleCancelValidation
+            ? "Cancelar ticket Con camara"
+            : "Cerrar camara y cancelar"}
+        </button>
+        {qrReader()}
+      </>
+    ) : (
+      <div>
+        <b>Validacion manual, coloque el id del ticket</b>
+        <input
+          type="text"
+          className="main-input"
+          value={result || ""}
+          onChange={(e) => setResult(e.target.value)}
+        />
+      </div>
+    );
+  };
   const cancelationContent = () => {
     return (
       <div>
-        <h1>Cancelacion de Validacion</h1>
+        <b>Cancelacion de Validacion</b>
+        <>
+          <Toggle
+            checked={autoCancelValidation}
+            onChange={() => {
+              setAutoCancelValidation((prev) => !prev);
+            }}
+            leftLabel="Cancelacion Manual"
+            rightLabel="Cancelacion Automatica"
+          />
+        </>
+        {autoCancellationContent()}
       </div>
-    )
-  }
+    );
+  };
   return (
     <div className="main-content">
       <h2 className="main-header">Validacion de ticket</h2>
-      <button className="primary-button secondary" onClick={() => {setHandleValidation(prep => !prep)}}>{ handleValidation ? "Cancelar validacion" : "Validar ticket"}</button>
-      {
-        handleValidation ? 
-        validationContent() :
-          cancelationContent()
-      }
+      <button
+        className="primary-button secondary"
+        onClick={() => {
+          setHandleValidation((prep) => !prep);
+        }}
+      >
+        {handleValidation ? "Cancelar validacion" : "Validar ticket"}
+      </button>
+      {handleValidation ? validationContent() : cancelationContent()}
     </div>
   );
 }

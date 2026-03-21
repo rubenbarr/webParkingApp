@@ -74,6 +74,20 @@ export async function validateTicketReq(token: string, ticketId: string, validat
     return error;
   }
 }
+export async function cancelValidationReq(token: string, ticketId: string) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/ticketRoute/cancelTicketValidation/${ticketId}`,
+      {
+        method: PATCH,
+        headers: { ...headers(token) }
+      },
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}
 export async function getTicketsFromLocation(
   token: string,
   locationId: string,
