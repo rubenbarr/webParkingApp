@@ -50,12 +50,14 @@ export const TicketPDF = (props: TicketProps) => {
   }
   return (
     <Document ref= {props.ref}>
-      <Page size={[155, 300]} style={styles.page}>
+      <Page size={[155, 210]} style={styles.page}>
         <View style={styles.section}>
           <View style={{display:"flex", width:"100%", alignItems:"center", justifyContent:"center"}}>
-            <Text >Recibo de pago</Text>
+            <Text style={[styles.header]}>{locationTitle}</Text>
           </View>
-          <Text style={styles.header}>{locationTitle}</Text>
+          <View style={{display:"flex", width:"100%", alignItems:"center", justifyContent:"center"}}>
+            <Text style={{fontWeight:"bold"}}>Recibo de pago</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Fecha de entrada: </Text>
             <Text>{new Date(ticket.fechaEntrada).toLocaleString("es-MX")}</Text>
@@ -84,7 +86,7 @@ export const TicketPDF = (props: TicketProps) => {
           <View style={styles.section}>
             {/* <Text>{"RFC: COTJ92052353"}</Text> */}
             <Text>
-                Gracias por usar nuestro serviio. Vuelva pronto
+                Gracias por usar nuestro servicio. Vuelva pronto
             </Text>
           </View>
         </View>
