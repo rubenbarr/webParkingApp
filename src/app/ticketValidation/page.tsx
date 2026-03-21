@@ -317,25 +317,17 @@ export default function TicketValidation() {
   }, [result]);
 
   useEffect(() => {
-      navigator.mediaDevices.getUserMedia({ video: true });
+    navigator.mediaDevices.getUserMedia({ video: true });
     getLocations();
   }, []);
 
-  useEffect(() => {
-  return () => {
-    if (qrInstance.current) {
-      qrInstance.current.stop().catch(() => {});
-    }
-  };
-}, []);
-
   const qrReader = () => {
-    if (!scanning) return null;
     return (
+      !error && (
         <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
-      );
+      )
+    );
   };
-
   const ErrorLabel = () => {
     if (error) {
       return (
