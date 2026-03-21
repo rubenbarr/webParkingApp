@@ -153,7 +153,6 @@ export default function TicketValidation() {
   const startScanner = async () => {
     setResult(null);
     setError(null);
-    navigator.mediaDevices.getUserMedia({ video: true });
     const payloadForValidation = {
       storeId: selectedStore.id,
       type: selectedValidation.type,
@@ -318,19 +317,25 @@ export default function TicketValidation() {
   }, [result]);
 
   useEffect(() => {
-    if (false) {
       navigator.mediaDevices.getUserMedia({ video: true });
-    }
     getLocations();
   }, []);
 
-  const qrReader = () => {
-    return (
-      !error && (
-        <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
-      )
-    );
+  useEffect(() => {
+  return () => {
+    if (qrInstance.current) {
+      qrInstance.current.stop().catch(() => {});
+    }
   };
+}, []);
+
+  const qrReader = () => {
+    if (!scanning) return null;
+    return (
+        <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
+      );
+  };
+
   const ErrorLabel = () => {
     if (error) {
       return (

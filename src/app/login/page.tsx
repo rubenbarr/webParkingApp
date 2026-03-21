@@ -59,17 +59,7 @@ export default function LoginPage() {
   const [timeLeft, setTimeLeft] = useState(30);
   const [initTimer, setInitTimer] = useState(false);
 
-  useEffect(() => {
-    if (initTimer) {
-      if (timeLeft === 0) {
-        resetToLogin();
-      }
-      const timer = setTimeout(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [initTimer, timeLeft]);
+
 
   const validatecode = async () => {
     try {
@@ -179,6 +169,27 @@ export default function LoginPage() {
   useEffect(() => {
     canSubtmit();
   }, [email, password]);
+  
+  useEffect(() => {
+    if (initTimer) {
+      if (timeLeft === 0) {
+        resetToLogin();
+      }
+      const timer = setTimeout(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [initTimer, timeLeft]);
+
+  useEffect(() => {
+    if(authCode.length >=6){
+      setCanSubmitAuthenticatorCode(true)
+      validatecode();
+    } else {
+      setCanSubmitAuthenticatorCode(false)
+    }
+  },[authCode])
 
   const shownextAnimation = () => {
     const classes = inputContainerAnimation
@@ -368,7 +379,7 @@ export default function LoginPage() {
         <button
           className="w-full bg-blue-500 text-white py-2 rounded  hover:bg-gray-600 enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-600"
           onClick={validatecode}
-          disabled={canSubmitAuthenticatorCode}
+          disabled={!canSubmitAuthenticatorCode}
         >
           Validar Codigo
         </button>
