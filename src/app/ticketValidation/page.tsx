@@ -550,11 +550,15 @@ export default function TicketValidation() {
         <button
           className="primary-button secondary"
           onClick={() => {
-            startScanner();
+            if(handleCancelValidation) {
+              startScanner();
+            } else {
+              stopScanner(true);
+            }
             setHandleCancValidation((prep) => !prep);
           }}
         >
-          {!handleCancelValidation
+          {handleCancelValidation
             ? "Cancelar ticket Con camara"
             : "Cerrar camara y cancelar"}
         </button>
@@ -596,6 +600,8 @@ export default function TicketValidation() {
       <button
         className="primary-button secondary"
         onClick={() => {
+          setResult("")
+          setAutoCancelValidation(true);
           setHandleValidation((prep) => !prep);
         }}
       >
