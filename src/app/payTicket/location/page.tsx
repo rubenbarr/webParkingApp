@@ -675,10 +675,16 @@ export default function PayTicketInLocation() {
 
 
   useEffect(() => {
-    if(ticketId.length >= 32) {
-      getTicketInfo()
-    }
-  },[ticketId])
+    if (!ticketId) return;
+
+    const delayDebounce = setTimeout(() => {
+      if (ticketId.length >= 32) {
+        getTicketInfo();
+      }
+    }, 300); // wait 300ms after typing stops
+
+    return () => clearTimeout(delayDebounce);
+  }, [ticketId]);
 
   // ends useEffects
 
