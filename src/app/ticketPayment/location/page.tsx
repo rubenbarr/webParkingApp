@@ -681,7 +681,6 @@ export default function PayTicketInLocation() {
         getTicketInfo();
       }
     }, 300); // wait 300ms after typing stops
-
     return () => clearTimeout(delayDebounce);
   }, [ticketId]);
 
