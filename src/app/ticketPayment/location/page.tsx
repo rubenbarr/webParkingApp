@@ -673,11 +673,11 @@ export default function PayTicketInLocation() {
   }, [isLoading, hasCredit]);
 
   
-    useEffect(() => {
-      if(ticketId.length >= 32) {
-        getTicketInfo()
-      }
-    },[ticketId])
+    // useEffect(() => {
+    //   if(ticketId.length >= 32) {
+    //     getTicketInfo()
+    //   }
+    // },[ticketId])
 
   // ends useEffects
 
