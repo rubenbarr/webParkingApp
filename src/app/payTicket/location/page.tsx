@@ -674,11 +674,11 @@ export default function PayTicketInLocation() {
   }, [payment]);
 
 
-  // useEffect(() => {
-  //   if(ticketId.length >= 32) {
-  //     getTicketInfo()
-  //   }
-  // },[ticketId])
+  useEffect(() => {
+    if(ticketId.length >= 32) {
+      getTicketInfo()
+    }
+  },[ticketId])
 
   // ends useEffects
 
