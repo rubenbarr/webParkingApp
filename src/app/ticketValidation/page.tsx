@@ -351,7 +351,10 @@ export default function TicketValidation() {
   useEffect(() => {
     if (result && result.length >= 36) {
       if (handleValidation) {
-        validateTicket();
+        const debouncetimer = setTimeout(() => {
+          validateTicket();
+        }, 400);
+        return clearTimeout(debouncetimer)
       } else {
         cancelTicketValidation();
       }
@@ -511,7 +514,8 @@ export default function TicketValidation() {
               locationId: selectedLocation.id
             }
             setValidationPayload(payloadForValidation);
-            setResult(e.target.value)}}
+            const val = e.target.value.replace("'","-");
+            setResult(val)}}
         />
       </div>
     );
@@ -593,7 +597,9 @@ export default function TicketValidation() {
           type="text"
           className="main-input"
           value={result || ""}
-          onChange={(e) => setResult(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value.replace("'","-");
+            setResult(val)}}
         />
       </div>
     );
