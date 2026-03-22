@@ -349,17 +349,17 @@ export default function TicketValidation() {
   }
 
   useEffect(() => {
+    const debounceTimer = setTimeout(() => {
     if (result && result.length >= 36) {
       if (handleValidation) {
-        const debouncetimer = setTimeout(() => {
           validateTicket();
-        }, 400);
-        return clearTimeout(debouncetimer)
-      } else {
-        cancelTicketValidation();
+        } else {
+          cancelTicketValidation();
+        }
+        stopScanner(false);
       }
-      stopScanner(false);
-    }
+    }, 400);
+    return () => clearTimeout(debounceTimer)
   }, [result]);
 
   useEffect(() => {
