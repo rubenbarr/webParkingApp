@@ -63,4 +63,5 @@ export interface ITicket {
   validationRule: validationRule
   storeName: string
   minutos_dentro: string
+  global_time_in: number
 }

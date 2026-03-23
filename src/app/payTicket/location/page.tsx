@@ -317,7 +317,9 @@ export default function PayTicketInLocation() {
                   <b>Billetes de 20</b>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["20"]}
                   min={0}
@@ -338,7 +340,9 @@ export default function PayTicketInLocation() {
                   <b>Billetes de 50</b>
                 </label>
                 <input
-                  type="number"
+                      type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["50"]}
                   min={0}
@@ -360,7 +364,9 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                  type="number"
+                                type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["100"]}
                   min={0}
@@ -382,7 +388,9 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                  type="number"
+                     type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["200"]}
                   min={0}
@@ -404,7 +412,9 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                  type="number"
+                    type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["500"]}
                   min={0}
@@ -436,7 +446,9 @@ export default function PayTicketInLocation() {
                   <b>Monedas de 50c</b>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["0.5"]}
                   min={0}
@@ -457,7 +469,9 @@ export default function PayTicketInLocation() {
                   <b>Monedas de 1</b>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["1"]}
                   min={0}
@@ -477,7 +491,9 @@ export default function PayTicketInLocation() {
                   <b>Monedas de 2</b>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["2"]}
                   min={0}
@@ -498,7 +514,9 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["5"]}
                   min={0}
@@ -519,7 +537,9 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["10"]}
                   min={0}

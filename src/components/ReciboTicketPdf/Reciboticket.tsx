@@ -74,7 +74,7 @@ export const TicketPDF = (props: TicketProps) => {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Total de tiempo: </Text>
-            <Text>{ticket.total_time}</Text>
+            <Text>{ticket.global_time_in}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Total pagado: </Text>

@@ -21,6 +21,8 @@ interface AuthContextType {
   setLoadingGlobal: (state: boolean) => void;
   userType: string | null;
   setUserType: (state: string) => void,
+  permissions: string[]
+  setPermissions: (state: string[]) => void,
   isAuthorized: boolean,
   setIsAuthorized : (state:boolean) => void
 }
@@ -35,8 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoadingGlobal, setLoadingGlobal] = useState<boolean>(false);
   const [userType, setUserType] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
-
-
+  const [permissions, setPermissions] = useState<string[]>([])
+ 
   useEffect(() => {
     const storageToken = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -84,7 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userType, 
         setUserType,
         isAuthorized,
-        setIsAuthorized
+        setIsAuthorized,
+        permissions,
+        setPermissions
       }}
     >
       {children}

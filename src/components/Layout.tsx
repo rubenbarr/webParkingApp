@@ -18,6 +18,7 @@ import cn from "classnames";
 interface tokenResponse {
   name: string;
   userType: string;
+  permissions: string[]
 }
 interface Response {
   state: boolean;
@@ -38,6 +39,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     isLoadingGlobal,
     userType,
     setUserType,
+    setPermissions,
+    permissions
   } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -75,6 +78,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           if (req.state) {
             setIsLogged(true);
             setUserType(req.data.userType);
+            setPermissions(req.data.permissions)
           } else {
             router.replace("/login");
           }
@@ -152,7 +156,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div onClick={handleLogout}>Salir</div>
     </div>
   );
-
   const operatorMenu = () => (
     <>
       <div className={style["side-top-menu"]}>
@@ -162,6 +165,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div onClick={() => handleSideMenu("/ticketPayment")} className="">
           Pagar Ticket
         </div>
+        {
+          permissions.includes("validations") &&
+        <div onClick={() => handleSideMenu("/ticketValidation")} className="">
+          Validar ticket
+        </div>
+        }
       </div>
       {buttonMenu()}
     </>
