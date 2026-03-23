@@ -217,6 +217,49 @@ export default function PayTicketInLocation() {
     }
   }
 
+    async function validateExitForNoPaymentTicket() {
+      if (ticketInfo?.total_a_pagar === 0 && ticketInfo.estado !== "pendiente") return;
+      const data = {
+        amount: 0,
+        paymentData: initialBillsCoinsInfo,
+        totalPayed: 0,
+        change: 0,
+      };
+      setCanSubmitPayment(false);
+      setLoadingGlobal(true);
+      setTicketId("");
+      setPaymentState(initialPaymentState);
+      setPayment(initialBillsCoinsInfo);
+      setCanPayTicket(false);
+      try {
+        const req = (await payTicket(
+          token as string,
+          ticketInfo?.ticketId as string,
+          data,
+        )) as Response;
+        if (!req.state) {
+          setCanOpenBarrier(false);    
+          setShouldDisplayPrintButton(false)
+          return handleToast("error", req?.message);
+        }
+        setShouldDisplayPrintButton(true)
+        handleToast("success", "se ha validado la salida correctamente");
+        setShouldDisplayTicketInfo(false);
+        await getTicketInfo()
+        // setCanOpenBarrier(true);
+      } catch (error: any) {
+        handleToast(
+          "error",
+          error?.message || "Hubo un error, intente más tarde",
+        );
+      } finally {
+        setShouldDisplayTicketInfo(false);
+        setCanSubmitPayment(true);
+        setLoadingGlobal(false);
+      }
+    }
+  
+
   const formatToCurrency = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -257,6 +300,33 @@ export default function PayTicketInLocation() {
         totalBills + totalCoins >= (ticketInfo?.total_a_pagar as number),
     );
   };
+
+    const buttonValidationCase = () => {
+      const total_a_pagar = ticketInfo?.total_a_pagar;
+      const estado = ticketInfo?.estado;
+  
+      if (total_a_pagar === 0 && estado === "pendiente") {
+        return (
+              <button
+              className={cn("primary-button", { disable: (total_a_pagar != 0 && estado !== "pendiente") })}
+              disabled={total_a_pagar != 0 && estado !== "pendiente"}
+              onClick={validateExitForNoPaymentTicket}
+            >
+              Validar Salida
+            </button>
+        )
+      } else if (canSubmitPayment && total_a_pagar && total_a_pagar > 0) {
+                    <button
+              className={cn("primary-button", { disable: !canSubmitPayment })}
+              disabled={!canSubmitPayment}
+              onClick={payTicketRequest}
+            >
+              Pagar
+            </button>
+      }
+      
+    }
+
 
   const payTicketActions = () => {
     return (
@@ -551,13 +621,7 @@ export default function PayTicketInLocation() {
               </div>
             </div>
           </div>
-          <button
-            className={cn("primary-button", { disable: !canSubmitPayment })}
-            disabled={!canSubmitPayment}
-            onClick={payTicketRequest}
-          >
-            Pagar
-          </button>
+        {buttonValidationCase()}
         </div>
       )
     );
