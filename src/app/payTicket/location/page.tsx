@@ -44,12 +44,11 @@ export default function PayTicketInLocation() {
   const params = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
 
-    const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<HTMLElement>(null);
 
-    const scrollToElement = () => {
-      elementRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
+  const scrollToElement = () => {
+    elementRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // end of global statements/data
 
@@ -87,7 +86,7 @@ export default function PayTicketInLocation() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string>("");
   const [shouldDisplayTicketInfo, setShouldDisplayTicketInfo] =
-  useState<boolean>(false);
+    useState<boolean>(false);
   const [canPayTicket, setCanPayTicket] = useState<boolean>(false);
   const [canSubmitPayment, setCanSubmitPayment] = useState(false);
   const [paymentState, setPaymentState] = useState({
@@ -98,7 +97,8 @@ export default function PayTicketInLocation() {
 
   const [canOpenBarrier, setCanOpenBarrier] = useState(false);
   const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
-  const [shouldDisplayPrintButton, setShouldDisplayPrintButton] = useState(false);
+  const [shouldDisplayPrintButton, setShouldDisplayPrintButton] =
+    useState(false);
 
   // end initial state
   // function refreshCredit() {
@@ -178,7 +178,6 @@ export default function PayTicketInLocation() {
     }
   }
 
-  
   async function payTicketRequest() {
     if (!canSubmitPayment) return;
     const data = {
@@ -200,14 +199,14 @@ export default function PayTicketInLocation() {
         data,
       )) as Response;
       if (!req.state) {
-        setCanOpenBarrier(false);    
-        setShouldDisplayPrintButton(false)
+        setCanOpenBarrier(false);
+        setShouldDisplayPrintButton(false);
         return handleToast("error", req?.message);
       }
-      setShouldDisplayPrintButton(true)
+      setShouldDisplayPrintButton(true);
       handleToast("success", req.message);
       setShouldDisplayTicketInfo(false);
-      await getTicketInfo()
+      await getTicketInfo();
       // setCanOpenBarrier(true);
     } catch (error: any) {
       handleToast(
@@ -220,9 +219,10 @@ export default function PayTicketInLocation() {
       setLoadingGlobal(false);
     }
   }
-  
+
   async function validateExitForNoPaymentTicket() {
-    if (ticketInfo?.total_a_pagar === 0 && ticketInfo.estado !== "pendiente") return;
+    if (ticketInfo?.total_a_pagar === 0 && ticketInfo.estado !== "pendiente")
+      return;
     const data = {
       amount: 0,
       paymentData: initialBillsCoinsInfo,
@@ -242,14 +242,14 @@ export default function PayTicketInLocation() {
         data,
       )) as Response;
       if (!req.state) {
-        setCanOpenBarrier(false);    
-        setShouldDisplayPrintButton(false)
+        setCanOpenBarrier(false);
+        setShouldDisplayPrintButton(false);
         return handleToast("error", req?.message);
       }
-      setShouldDisplayPrintButton(true)
+      setShouldDisplayPrintButton(true);
       handleToast("success", "se ha validado la salida correctamente");
       setShouldDisplayTicketInfo(false);
-      await getTicketInfo()
+      await getTicketInfo();
       // setCanOpenBarrier(true);
     } catch (error: any) {
       handleToast(
@@ -310,30 +310,32 @@ export default function PayTicketInLocation() {
 
     if (total_a_pagar === 0 && estado === "pendiente") {
       return (
-            <button
-            className={cn("primary-button", { disable: (total_a_pagar != 0 && estado !== "pendiente") })}
-            disabled={total_a_pagar != 0 && estado !== "pendiente"}
-            onClick={validateExitForNoPaymentTicket}
-          >
-            Validar Salida
-          </button>
-      )
-    } else if (canSubmitPayment && total_a_pagar && total_a_pagar > 0) {
-                  <button
-            className={cn("primary-button", { disable: !canSubmitPayment })}
-            disabled={!canSubmitPayment}
-            onClick={payTicketRequest}
-          >
-            Pagar
-          </button>
+        <button
+          className={cn("primary-button", {
+            disable: total_a_pagar != 0 && estado !== "pendiente",
+          })}
+          disabled={total_a_pagar != 0 && estado !== "pendiente"}
+          onClick={validateExitForNoPaymentTicket}
+        >
+          Validar Salida
+        </button>
+      );
+    } else if (estado === "pendiente" && total_a_pagar && total_a_pagar > 0) {
+      return (
+        <button
+          className={cn("primary-button", { disable: !canSubmitPayment })}
+          disabled={!canSubmitPayment}
+          onClick={payTicketRequest}
+        >
+          Pagar
+        </button>
+      );
     }
-    
-  }
+  };
   const payTicketActions = () => {
     return (
       shouldDisplayTicketInfo &&
-      canPayTicket && 
-       (
+      canPayTicket && (
         <div className="payment-content">
           <div className="header-payment-content">
             <label>
@@ -384,7 +386,7 @@ export default function PayTicketInLocation() {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["20"]}
@@ -406,8 +408,8 @@ export default function PayTicketInLocation() {
                   <b>Billetes de 50</b>
                 </label>
                 <input
-                      type="text"
-                  inputMode="numeric" 
+                  type="text"
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["50"]}
@@ -430,8 +432,8 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                                type="text"
-                  inputMode="numeric" 
+                  type="text"
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["100"]}
@@ -454,8 +456,8 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                     type="text"
-                  inputMode="numeric" 
+                  type="text"
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["200"]}
@@ -478,8 +480,8 @@ export default function PayTicketInLocation() {
                 </label>
 
                 <input
-                    type="text"
-                  inputMode="numeric" 
+                  type="text"
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.bills["500"]}
@@ -513,7 +515,7 @@ export default function PayTicketInLocation() {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["0.5"]}
@@ -536,7 +538,7 @@ export default function PayTicketInLocation() {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["1"]}
@@ -558,7 +560,7 @@ export default function PayTicketInLocation() {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["2"]}
@@ -581,7 +583,7 @@ export default function PayTicketInLocation() {
 
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["5"]}
@@ -604,7 +606,7 @@ export default function PayTicketInLocation() {
 
                 <input
                   type="text"
-                  inputMode="numeric" 
+                  inputMode="numeric"
                   pattern="[0-9]*"
                   className="filter-input"
                   value={payment.coins["10"]}
@@ -623,28 +625,38 @@ export default function PayTicketInLocation() {
               </div>
             </div>
           </div>
-{         buttonValidationCase()}
+          {buttonValidationCase()}
         </div>
       )
     );
   };
 
-  const ticketValidationLabel = () => ticketInfo?.parkingValidation && (
-    <div style={{display:"flex", flexDirection:"column"}}>
-     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>Este ticket cuenta con validacion de establecimiento</label>
-     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Tipo de validacion: " + ticketInfo.validationRule.type }</label>
-     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Validado por: " + ticketInfo.storeName }</label>
-     <label htmlFor="" style={{color:"#0D734F", fontWeight:"bold"}}>{"Fecha/validation: " + transformDate(ticketInfo.validatedAt)}</label>
-    </div>
-  ) 
-    
+  const ticketValidationLabel = () =>
+    ticketInfo?.parkingValidation && (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <label htmlFor="" style={{ color: "#0D734F", fontWeight: "bold" }}>
+          Este ticket cuenta con validacion de establecimiento
+        </label>
+        <label htmlFor="" style={{ color: "#0D734F", fontWeight: "bold" }}>
+          {"Tipo de validacion: " + ticketInfo.validationRule.type}
+        </label>
+        <label htmlFor="" style={{ color: "#0D734F", fontWeight: "bold" }}>
+          {"Validado por: " + ticketInfo.storeName}
+        </label>
+        <label htmlFor="" style={{ color: "#0D734F", fontWeight: "bold" }}>
+          {"Fecha/validation: " + transformDate(ticketInfo.validatedAt)}
+        </label>
+      </div>
+    );
+
   const messageLabel = () => {
-    if(!ticketInfo?.cocheDentro) return (
-      <>
-      <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida &&  "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
-      </>
-    )
-    if (ticketInfo?.tolerancia && ticketInfo.estado === 'pendiente') {
+    if (!ticketInfo?.cocheDentro)
+      return (
+        <>
+          <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida && "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
+        </>
+      );
+    if (ticketInfo?.tolerancia && ticketInfo.estado === "pendiente") {
       return (
         <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
       );
@@ -673,9 +685,7 @@ export default function PayTicketInLocation() {
               <div
                 className={cn("ticket-info-container", {
                   hasToPay: ticketInfo?.repago,
-                               })}
-
-             
+                })}
               >
                 {messageLabel()}
                 {ticketValidationLabel()}
@@ -702,36 +712,41 @@ export default function PayTicketInLocation() {
                   <p className="info-content">
                     <b>{"Total a pagar:"}</b>{" "}
                     <label>
-                      {
-                          ticketInfo?.total_a_pagar && transformToCurrency(ticketInfo?.total_a_pagar)
-                       }
+                      {ticketInfo?.total_a_pagar &&
+                        transformToCurrency(ticketInfo?.total_a_pagar)}
                     </label>
                   </p>
                 </div>
-                { ticketInfo?.estado === "pagado" &&                <div className="ticket-payment-Info">
-                  <label htmlFor="">Informacion de ultimo pago</label>
-                  <p className="info-content"> 
-                  <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
-                  <label htmlFor="">{ticketInfo?.tiempo_despues_de_utimo_pago}</label>
-                  </p>
-                  <b>Historial de pagos de ticket</b>
-                  {ticketInfo?.dataPayment.map((item, index) => (
-                    <div key={item.id} className="ticket-info-content">
-                      <p className="info-content">
-                        <b>{"No. de pago: "}</b>{" "}
-                        <label> {index + 1}</label>
-                      </p>
-                      <p className="info-content">
-                        <b>{"Fecha de pago: "}</b>{" "}
-                        <label> {transformDate(item?.fechaPago)}</label>
-                      </p>
-                      <p className="info-content">
-                        <b>{"Total pagado: "}</b>{" "}
-                        <label> {transformToCurrency(item?.amount || 0)}</label>
-                      </p>
-                    </div>
-                  ))}
-                </div>}
+                {ticketInfo?.estado === "pagado" && (
+                  <div className="ticket-payment-Info">
+                    <label htmlFor="">Informacion de ultimo pago</label>
+                    <p className="info-content">
+                      <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
+                      <label htmlFor="">
+                        {ticketInfo?.tiempo_despues_de_utimo_pago}
+                      </label>
+                    </p>
+                    <b>Historial de pagos de ticket</b>
+                    {ticketInfo?.dataPayment.map((item, index) => (
+                      <div key={item.id} className="ticket-info-content">
+                        <p className="info-content">
+                          <b>{"No. de pago: "}</b> <label> {index + 1}</label>
+                        </p>
+                        <p className="info-content">
+                          <b>{"Fecha de pago: "}</b>{" "}
+                          <label> {transformDate(item?.fechaPago)}</label>
+                        </p>
+                        <p className="info-content">
+                          <b>{"Total pagado: "}</b>{" "}
+                          <label>
+                            {" "}
+                            {transformToCurrency(item?.amount || 0)}
+                          </label>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -753,7 +768,6 @@ export default function PayTicketInLocation() {
     totalPay();
   }, [payment]);
 
-
   useEffect(() => {
     if (!ticketId) return;
 
@@ -769,39 +783,57 @@ export default function PayTicketInLocation() {
   // ends useEffects
 
   const renderButtonToOpenBarrier = () => {
-      return canOpenBarrier && (
-        <div style={{display:"flex", justifyContent:"flex-end"}}>
-          <ButtonOpenBarrier ShouldDisplay={canOpenBarrier} handleShouldDisplay={setCanOpenBarrier}/>
+    return (
+      canOpenBarrier && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <ButtonOpenBarrier
+            ShouldDisplay={canOpenBarrier}
+            handleShouldDisplay={setCanOpenBarrier}
+          />
         </div>
       )
-  }
+    );
+  };
   const renderButtonToPrintTicketReceive = () => {
-      return shouldDisplayPrintButton && (
-        <div style={{display:"flex", justifyContent:"flex-end"}}>
+    return (
+      shouldDisplayPrintButton && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           {!displayPdfViewe ? (
-
-            <button className="primary-button" onClick={()=> {setDisplayPdfViewer(true); scrollToElement()}}>
-            Imprimir recibo
-          </button>
-          ) :  (
-          <button className="primary-button" onClick={()=> setDisplayPdfViewer(false)}>
-            Cerrar vista de impresion
-          </button>
-          )
-          }
+            <button
+              className="primary-button"
+              onClick={() => {
+                setDisplayPdfViewer(true);
+                scrollToElement();
+              }}
+            >
+              Imprimir recibo
+            </button>
+          ) : (
+            <button
+              className="primary-button"
+              onClick={() => setDisplayPdfViewer(false)}
+            >
+              Cerrar vista de impresion
+            </button>
+          )}
         </div>
       )
-  }
+    );
+  };
 
   const PDFViewerComponent = () => {
-  return (
-    displayPdfViewe &&
-      <PDFViewer style={{ width: "100%", height: "40vh" }}>
-        <TicketPDF  ticket={ticketInfo as ITicket} locationTitle={locationInfo?.title as string} ref={elementRef}/>
-      </PDFViewer> 
-    )
-
-  }
+    return (
+      displayPdfViewe && (
+        <PDFViewer style={{ width: "100%", height: "40vh" }}>
+          <TicketPDF
+            ticket={ticketInfo as ITicket}
+            locationTitle={locationInfo?.title as string}
+            ref={elementRef}
+          />
+        </PDFViewer>
+      )
+    );
+  };
   return (
     <>
       <div className="main-content first">
@@ -815,61 +847,60 @@ export default function PayTicketInLocation() {
             margin: 0,
             padding: 0,
           }}
-        >
-        </div>
-          <>
-            <div className="header-container">
-              <div className="options-header">
-                <h1 className="main-header">Pago De ticket</h1>
-                <a onClick={() => router.replace("/payTicket")}>Regresar</a>
-              </div>
-              <b>Datos de ubicación</b>
-              <div className="content-info">
-                <label>
-                  <b>{"Ubicación: "}</b>
-                  {locationInfo?.title}
-                </label>
-                <label>
-                  <b>{"Dirección: "}</b>
-                  {locationInfo?.address}
-                </label>
-                <label>
-                  <b>{"Contacto: "}</b>
-                  {locationInfo?.contact}
-                </label>
-              </div>
+        ></div>
+        <>
+          <div className="header-container">
+            <div className="options-header">
+              <h1 className="main-header">Pago De ticket</h1>
+              <a onClick={() => router.replace("/payTicket")}>Regresar</a>
             </div>
-            {renderButtonToOpenBarrier()}
-            {renderButtonToPrintTicketReceive()}
-            <label>
-              <b>Ingrese el código qr del ticket</b>
-            </label>
-            <div className="qr-input-container">
-              <input
-                type="text"
-                placeholder="Ticket ID"
-                className="filter-input"
-                value={ticketId}
-                onChange={(e) => {
-                  const formattedValue = e.target.value.replace(/'/g, "-");
-                  setTicketId(formattedValue);
-                }}
-              />
-              <div
-                className="trash-icon-container"
-                onClick={() => setTicketId("")}
-              >
-                <TrashIcon />
-              </div>
-              <button onClick={getTicketInfo} className="primary-button">
-                Buscar
-              </button>
+            <b>Datos de ubicación</b>
+            <div className="content-info">
+              <label>
+                <b>{"Ubicación: "}</b>
+                {locationInfo?.title}
+              </label>
+              <label>
+                <b>{"Dirección: "}</b>
+                {locationInfo?.address}
+              </label>
+              <label>
+                <b>{"Contacto: "}</b>
+                {locationInfo?.contact}
+              </label>
             </div>
-            <div className="">
+          </div>
+          {renderButtonToOpenBarrier()}
+          {renderButtonToPrintTicketReceive()}
+          <label>
+            <b>Ingrese el código qr del ticket</b>
+          </label>
+          <div className="qr-input-container">
+            <input
+              type="text"
+              placeholder="Ticket ID"
+              className="filter-input"
+              value={ticketId}
+              onChange={(e) => {
+                const formattedValue = e.target.value.replace(/'/g, "-");
+                setTicketId(formattedValue);
+              }}
+            />
+            <div
+              className="trash-icon-container"
+              onClick={() => setTicketId("")}
+            >
+              <TrashIcon />
+            </div>
+            <button onClick={getTicketInfo} className="primary-button">
+              Buscar
+            </button>
+          </div>
+          <div className="">
             {payTicketInfoContainer()}
             {payTicketActions()}
-            </div>
-          </>
+          </div>
+        </>
       </div>
     </>
   );
