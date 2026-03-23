@@ -69,8 +69,8 @@ export default function TicketValidation() {
     discount: false,
   });
 
-  const [autoValidation, setAutoValidation] = useState(true);
-  const [autoCancelValidation, setAutoCancelValidation] = useState(true);
+  const [autoValidation, setAutoValidation] = useState(false);
+  const [autoCancelValidation, setAutoCancelValidation] = useState(false);
   const [validationPayload, setValidationPayload] = useState({
     storeId: "",
     type: "",
@@ -348,6 +348,8 @@ export default function TicketValidation() {
     await getLocations();
   }
 
+  // =========== use effects handles
+
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
     if (result && result.length >= 36) {
@@ -363,9 +365,18 @@ export default function TicketValidation() {
   }, [result]);
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true });
+    if(autoValidation || autoCancelValidation) { 
+      navigator.mediaDevices.getUserMedia({ video: true });
+    }
+  }, [autoValidation, autoCancelValidation]);
+  
+  useEffect(() => {
     getLocations();
-  }, []);
+  },[])
+
+
+
+    // =========== END use effects handles
 
   const qrReader = () => {
     return (
@@ -629,7 +640,6 @@ export default function TicketValidation() {
         className="primary-button secondary"
         onClick={() => {
           setResult("")
-          setAutoCancelValidation(true);
           setHandleValidation((prep) => !prep);
         }}
       >
