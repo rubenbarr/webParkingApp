@@ -16,6 +16,10 @@ import { Response } from "@/api/usersApi";
 import { transformToCurrency } from "@/assets/utils";
 import { UserTemplate } from "@/types/user";
 import "./creditsStyle.scss";
+import { PDFViewer } from "@react-pdf/renderer";
+import OperatorCreditPdf from "@/components/ReciboCreditoOperador/Reciboticket";
+import { ICredit } from "@/types/credits";
+import { PrinterIcon } from "lucide-react";
 
 interface CreditList {
   createdAt: string;
@@ -129,6 +133,7 @@ export default function Page() {
   const [invalidCloseDate, SetInvalidCloseDate] = useState(false);
   const [creditListFilter, setCreditListFilter] = useState("");
   const [creditId, setCreditId] = useState<string | null>(null);
+  const [displayPdfView, SetDisplayPdfView] = useState<boolean>(false);
 
   //end of state
 
@@ -948,10 +953,36 @@ export default function Page() {
     );
   };
 
+const PDFViewerComponent = () => {
+  return (
+    displayPdfView && creditInfo && (
+      <PDFViewer style={{ width: "100%", height: "50vh" }}>
+        <OperatorCreditPdf
+          creditInfo={creditInfo as any}
+        />
+      </PDFViewer>
+    )
+  );
+};
+const printActionButtons = () => {
+  return (
+    <>
+    { displayPdfView 
+      ?
+      <button className='primary-button' onClick={() => {SetDisplayPdfView(false)}}>Ocultar impresion</button> 
+      :
+      <button className='trash-icon-container' onClick={() => {SetDisplayPdfView(true)}}>
+      <PrinterIcon/>
+      </button> }
+        </>
+    )
+}
   if (!userType || userType !== "global-admin") return null;
   else {
     return (
       <div className="main-content">
+        {PDFViewerComponent()}
+        {creditInfo.requestId && printActionButtons()}
         {deleteCreditRequestModal()}
         <div className="main-header">Manejo de créditos</div>
         <div className="primary-content dataSet">

@@ -6,6 +6,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import { useAuth } from "@/context/AuthContext";
 import { fetchCreditInfo } from "@/store/slices/creditSlice";
 import { transformToCurrency } from "@/assets/utils";
+import { PrinterIcon } from "lucide-react";
 
 interface ICreditProps {
   shouldDisplayCreditInfo?: boolean | false;
@@ -31,7 +32,12 @@ export default function CreditInfoComponent(props: ICreditProps) {
 
   return (
     <div className="credit-info-content">
-      <h1 className="secondary-header">Informacion de ultimo credito</h1>
+      <div className="credit-info-header-row">
+        <h1 className="secondary-header">Informacion de ultimo credito</h1>
+        <button className="trash-icon-container">
+          <PrinterIcon />
+        </button>
+      </div>
       {hasCredit || props.shouldDisplayCreditInfo ? (
         <div className="content">
           <label>

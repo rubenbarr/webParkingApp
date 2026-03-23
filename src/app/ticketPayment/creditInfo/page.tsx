@@ -1,10 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
+import { getCreditById } from '@/api/credits';
 import { getTicketsPayedByCredit } from '@/api/ticketsApi';
 import { Response } from '@/api/usersApi';
 import { transformToCurrency } from '@/assets/utils';
 import CreditInfoComponent from '@/components/CreditInfo/CreditInfo'
+import OperatorCreditPdf from '@/components/ReciboCreditoOperador/Reciboticket';
 import { useAuth } from '@/context/AuthContext';
+import { ICredit } from '@/types/credits';
 import { IDataPayment, IPayment, ITicket } from '@/types/ticket';
+import { PDFViewer } from '@react-pdf/renderer';
+import { PrinterIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -16,10 +22,13 @@ export default function Page() {
 
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [canloadMore, setCanLoadmore] = useState<boolean>(true);
+  const [displayPdfView,setDisplayPdfView] = useState<boolean>(true);
+
   const [mypayments, setMyPayments] = useState<ITicket[]>([]);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [creditId, setCreditId] = useState<string | null>( )
+  const [creditInfo, setCreditInfo] = useState<ICredit>()
   
   const getDate = (date: string) => {
     return new Date(date).toLocaleString()
@@ -63,55 +72,29 @@ export default function Page() {
     await getTicketsPayed(nextPage, creditId as string);
   }
 
+  async function getCreditInfoById(creditId:string) {
+    if (!creditId) return;
+    try {
+      const req = await getCreditById(creditId, token as string) as Response;
+      if (!req.state) {
+        handleToast("error", req?.message || "Hubo un error obteniendo informacion del credito intente mas tarde ")  
+      } else {
+        const data = req.data as ICredit[];
+        setCreditInfo(data[0]);
+      }
+    } catch (error:any) {
+      handleToast("error", error?.message || "Hubo un error obteniendo informacion del credito intente mas tarde ")
+    }
+    
+  }
   useEffect(() => {
     const id = params.get("id")
     if (!id) return router.replace("/ticketPayment")
     setCreditId(id)
     getTicketsPayed(page, id as string)
+    getCreditInfoById(id)
   },[])
 
-  const renderPaymentData = (data: IPayment) => {
-      if (!data) return null;
-      return (
-        <td>
-          <table>
-            <thead>
-  
-              <tr>
-                <th className="data" colSpan={5}>Billetes</th>
-                <th className="data" colSpan={4}>Monedas</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="data">
-                <th> {"$20"}</th>
-                <th> {"$50"}</th>
-                <th> {"$100"}</th>
-                <th> {"$200"}</th>
-                <th> {"$500"}</th>
-                <th> {"$0.5"}</th>
-                <th> {"$1"}</th>
-                <th> {"$2"}</th>
-                <th> {"$5"}</th>
-                <th> {"$10"}</th>
-              </tr>
-              <tr className="data">
-                <td> {data.bills[20]}</td>
-                <td> {data.bills[50]}</td>
-                <td> {data.bills[100]}</td>
-                <td> {data.bills[200]}</td>
-                <td> {data.bills[500]}</td>
-                <td> {data.coins[0.5]}</td>
-                <td> {data.coins[1]}</td>
-                <td> {data.coins[2]}</td>
-                <td> {data.coins[5]}</td>
-                <td> {data.coins[10]}</td>
-              </tr>
-            </tbody>
-          </table>
-        </td>
-      );
-    };
 
     const myPaymentsList = () => {
       return (
@@ -192,9 +175,20 @@ export default function Page() {
       );
     };
   
-
+      const PDFViewerComponent = () => {
+        return (
+          displayPdfView && creditInfo && (
+            <PDFViewer style={{ width: "100%", height: "50vh" }}>
+              <OperatorCreditPdf
+                creditInfo={creditInfo}
+              />
+            </PDFViewer>
+          )
+        );
+      };
   return (
   <div className="main-content">
+    {PDFViewerComponent()}
     <div className="options-header">
       <a
         className="content-action"
@@ -203,6 +197,13 @@ export default function Page() {
         Regresar
       </a>
     </div>
+    { displayPdfView 
+      ?
+     <button className='primary-button' onClick={() => {setDisplayPdfView(false)}}>Ocultar impresion</button> 
+     :
+    <button className='trash-icon-container' onClick={() => {setDisplayPdfView(true)}}>
+      <PrinterIcon/>
+    </button> }
     {myPaymentsList()}
   </div>
   )
