@@ -54,7 +54,7 @@ type options = {
 export default function DetailCard(props: DetailProps) {
   const shouldRender = useDelayedUnmount(props.detailCardState, 400);
   const [cardVisible, setCardVisible] = useState(false);
-  const [options, setOptions] = useState<options[]>([]);
+  // const [options, setOptions] = useState<options[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   const [optionsTitle, setOptionsTitle] = useState("Lista");
   const [handlingItem, setHandlingItem] = useState("");
@@ -71,9 +71,11 @@ export default function DetailCard(props: DetailProps) {
     }
   }, [props.detailCardState, shouldRender]);
 
-  useEffect(() => {
-    if(props.shouldReRenderOptions) setOptions(props.template[handlingItem].values);
-  },[props.values])
+  // useEffect(() => {
+  //   if(props.shouldReRenderOptions) setOptions(props.template[handlingItem].values);
+  // },[props.values])
+
+  const currentOptions = props.template[handlingItem]?.values || [];
 
   const resetDetailCard = () => {
     setWarningModalState(false);
@@ -86,12 +88,17 @@ export default function DetailCard(props: DetailProps) {
     props.handleListValues(handlingItem, value, checked, label);
   };
 
-  const handleItems = (itemKey: string, refresh: boolean = false) => {
+  // const handleItems = (itemKey: string, refresh: boolean = false) => {
 
-    setHandlingItem(itemKey);
-    setOptions(props.template[itemKey].values);
-    setShowOptions(!showOptions)
-  };
+  //   setHandlingItem(itemKey);
+  //   setOptions(props.template[itemKey].values);
+  //   setShowOptions(!showOptions)
+  // };
+
+  const handleItems = (itemKey: string) => {
+  setHandlingItem(itemKey);
+  setShowOptions(!showOptions);
+};
 
   const handleSubmit = () => {
     setShowOptions(false);
@@ -236,6 +243,7 @@ export default function DetailCard(props: DetailProps) {
               canBeModified={props.template[k].canBeModified}
               isEditing={!props.isNewItem}
               disable={props.template[k]?.disable}
+              shouldDisplay = {  props.template[k].shouldDisplay === false ? false : true }
             />
           ))}
         </div>
@@ -255,10 +263,10 @@ export default function DetailCard(props: DetailProps) {
                 <label>{optionsTitle}</label>
               </div>
               <div className={cn([styles["lower-options-body"]])}>
-                {options.length === 0 ? (
+                {currentOptions.length === 0 ? (
                   <div>No hay Opciones</div>
                 ) : (
-                  options.map((item) => (
+                  currentOptions.map((item:any) => (
                     <div
                       key={item.value}
                       className={cn([styles["option-col"]])}

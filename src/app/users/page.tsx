@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
-import React, { useEffect, useState, lazy, Suspense, useMemo } from "react";
+import React, { useEffect, useState, lazy, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { TrashIcon } from "lucide-react";
 
-const DetailCard = lazy ( () => import("@/components/DetailCard/Detailcard"));
-
+const DetailCard = lazy(() => import("@/components/DetailCard/Detailcard"));
 
 import { getLocations } from "@/api/locationApi";
 import { useAuth } from "@/context/AuthContext";
@@ -20,7 +19,8 @@ import {
 } from "@/api/usersApi";
 
 import styles from "./styles/usersStyles.module.scss";
-
+import { getStores } from "@/api/storesApi";
+import { IStore } from "@/types/stores";
 
 interface Location {
   id: string;
@@ -43,6 +43,7 @@ export interface UserTemplate {
   status?: string;
   type?: string;
   createdAt?: string;
+  stores?: Location[];
 }
 interface Ivalues {
   value: string;
@@ -77,6 +78,11 @@ interface ITemplate {
     label: string;
     values: Ivalues[];
   };
+  stores: {
+    type: string;
+    label: string;
+    values: Ivalues[];
+  };
 }
 
 export default function Users() {
@@ -92,6 +98,7 @@ export default function Users() {
         { value: "", label: "Seleccione un Rol" },
         { value: "global-admin", label: "Administrador" },
         { value: "operador", label: "Operador" },
+        { value: "negocio", label: "negocio" },
       ],
     },
     phone: {
@@ -111,7 +118,14 @@ export default function Users() {
       type: "datalist",
       label: "Ubicaciones",
       values: [],
-      disable:false
+      disable: false,
+    },
+    stores: {
+      type: "datalist",
+      label: "Establecimientos",
+      values: [],
+      disable: false,
+      shouldDisplay: false,
     },
   };
 
@@ -122,6 +136,7 @@ export default function Users() {
     direction: "",
     email: "",
     location: [],
+    stores: [],
   };
 
   const detailOptions = [
@@ -153,34 +168,18 @@ export default function Users() {
   const [temporalEdit, setTemporalEdit] =
     useState<UserTemplate>(initialDataState);
   const [detailCardLoading, setDetailCardLoading] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1); 
   const [canLoadMore, setCanLoadmore] = useState(true);
   const [isNewUser, setIsNewUser] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => 
-    u.fullname.toLowerCase().includes(filterValue.toLowerCase()) ||
-    u.email.toLowerCase().includes(filterValue.toLowerCase()) 
+    return users.filter(
+      (u) =>
+        u.fullname.toLowerCase().includes(filterValue.toLowerCase()) ||
+        u.email.toLowerCase().includes(filterValue.toLowerCase()),
     );
-  }, [users, filterValue])
-  useEffect(() => {
-    setIsEdit(wasEdited());
-    setCanSubmit(handleCanSubmit());
-  }, [edit]);
-
-  useEffect(() => {
-    fetchData();
-    const newUser = searchParams.get("newUser");
-    const user = searchParams.get("userId");
-    fetchLocations();
-    if (user) {
-      getUserFromList(user);
-    }
-    if (newUser) {
-      setDetailCardState(true);
-    }
-  }, []);
+  }, [users, filterValue]);
 
   const filterUsersByvalue = (value: string) => {
     setFilterValue(value);
@@ -200,11 +199,11 @@ export default function Users() {
         isChecked: true,
       }));
       const currentLocationsInTemplate = initTemplate.location.values.map(
-        (i: any) => ({ ...i, isChecked: false })
+        (i: any) => ({ ...i, isChecked: false }),
       );
       const mergeLocations = [...currentLocationsInTemplate, ...locations];
       const uniqueKiocos = Array.from(
-        new Map(mergeLocations.map((i: any) => [i?.value, i])).values()
+        new Map(mergeLocations.map((i: any) => [i?.value, i])).values(),
       );
       setInitTemplate((prev) => ({
         ...prev,
@@ -212,6 +211,24 @@ export default function Users() {
       }));
     } else {
       await fetchLocations(data.location);
+    }
+    if (data.stores && data.stores.length > 0) {
+      const stores = data.stores.map((i) => ({
+        label: i.name,
+        value: i.id,
+        isChecked: true,
+      }));
+      const currentLocationsInTemplate = initTemplate.stores.values.map(
+        (i: any) => ({ ...i, isChecked: false }),
+      );
+      const mergeStores = [...currentLocationsInTemplate, ...stores];
+      const uniqueStores = Array.from(
+        new Map(mergeStores.map((i: any) => [i?.value, i])).values(),
+      );
+      setInitTemplate((prev) => ({
+        ...prev,
+        stores: { ...prev.stores, values: uniqueStores },
+      }));
     }
   };
 
@@ -245,9 +262,21 @@ export default function Users() {
     data.location?.forEach((i) => {
       locations.push(i.id);
     });
+    const stores: string[] = [];
+    if (data.stores && data.stores?.length > 0) {
+      data.stores.forEach((i) => {
+        stores.push(i.id);
+      });
+    }
+    const permissions = []
+    if(stores.length > 0) {
+      permissions.push('validations')
+    }
     const newData = {
       ...data,
-      location: locations
+      location: locations,
+      stores: stores,
+      permissions: permissions
     };
     return newData;
   }
@@ -274,7 +303,7 @@ export default function Users() {
     setDetailCardLoading(true);
     const req = (await deleteUser(
       userId as string,
-      token as string
+      token as string,
     )) as Response;
     if (req) {
       setDetailCardLoading(false);
@@ -289,57 +318,67 @@ export default function Users() {
     }
   }
 
+
+  console.log(initTemplate);
+
   const handleListValues = (
-    key: string | any,
-    value: string | number,
-    wasChecked: boolean = false,
+    key: keyof UserTemplate,
+    value: string,
+    wasChecked: boolean,
     label: string
   ) => {
-    const currentValuesChecked: any = [];
-    const editIds = edit[key as keyof UserTemplate] as any;
+    const editArray = Array.isArray(edit[key]) ? [...edit[key]] : [];
 
-    if (Array.isArray(editIds))
-      editIds.map((i: any) => currentValuesChecked.push(i.id));
+    const currentIds = editArray.map((i: any) => i.id);
 
-    const currentTemplateValues = initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values.filter(
-      (i) => i.value === value
-    )[0];
+    const templateValues = initTemplate[key].values;
 
     if (wasChecked) {
-      if (!currentValuesChecked.includes(value)) {
-        const newData = { id: value, name: label };
-        setEdit((prev) => ({ ...prev, [key]: [...prev[key as keyof UserTemplate] as [], newData] }));
-        currentTemplateValues.isChecked = true;
-        const currentValues = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
-          (i) => i.value !== value
+      if (!currentIds.includes(value)) {
+        const newItem = { id: value, name: label };
+
+        const updatedTemplate = templateValues.map(item =>
+          item.value === value
+            ? { ...item, isChecked: true }
+            : item
         );
-        const merge = [...currentValues, currentTemplateValues];
-        setInitTemplate((prev) => ({
+
+        setEdit(prev => ({
           ...prev,
-          [key]: { ...prev[key as keyof ITemplate], values: merge },
+          [key]: [...editArray, newItem],
+        }));
+
+        setInitTemplate(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            values: updatedTemplate,
+          },
         }));
       }
     } else {
-      if (currentValuesChecked.includes(value)) {
-        const unckechValue = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
-          (i) => i.value === value
-        )[0];
-        const remainingValues = [...initTemplate[key as keyof Pick<ITemplate, "type" | "location">].values].filter(
-          (i) => i.value !== value
-        );
-        unckechValue.isChecked = false;
-        const merge = [...remainingValues, unckechValue];
-        const filterData =  editIds.filter((i:any) => i.id !== value);
-        setEdit((prev) => ({ ...prev, [key]: filterData }));
+      const filtered = editArray.filter((i: any) => i.id !== value);
 
-        setInitTemplate((prev) => ({
-          ...prev,
-          [key]: { ...prev[key as keyof ITemplate], values: merge },
-        }));
-      }
+      const updatedTemplate = templateValues.map(item =>
+        item.value === value
+          ? { ...item, isChecked: false }
+          : item
+      );
+
+      setEdit(prev => ({
+        ...prev,
+        [key]: filtered,
+      }));
+
+      setInitTemplate(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          values: updatedTemplate,
+        },
+      }));
     }
   };
-
   const wasEdited = () => {
     const initKeys = Object.keys(init);
     return initKeys.some((key) => {
@@ -364,9 +403,16 @@ export default function Users() {
 
   const handleCanSubmit = () => {
     const values = Object.keys(edit);
-    if (edit.type === 'global-admin'){
-      setInitTemplate(prev => ({...prev, location: {...prev.location, disable: true} }))
-    } else setInitTemplate(prev => ({...prev, location: {...prev.location, disable: false} }))
+    if (edit.type === "global-admin") {
+      setInitTemplate((prev) => ({
+        ...prev,
+        location: { ...prev.location, disable: true },
+      }));
+    } else
+      setInitTemplate((prev) => ({
+        ...prev,
+        location: { ...prev.location, disable: false },
+      }));
     return values.every((v) => {
       // if (edit.type !== 'global-admin' && Array.isArray(edit[v as keyof UserTemplate])) {
       //   return edit[v as keyof UserTemplate]?.length !== 0;
@@ -380,10 +426,22 @@ export default function Users() {
     if (data.location && data.location.length > 0) {
       data.location.forEach((i: Location) => newLocations.push(i.id));
     }
+    const stores: string[] = [];
+    if (data.stores && data.stores?.length > 0) {
+      data.stores.forEach((i) => {
+        stores.push(i.id);
+      });
+    }
+    const permissions = []
+    if(stores.length > 0) {
+      permissions.push('validations')
+    }
     delete data.location;
     return {
       ...data,
       location: newLocations,
+      permissions:permissions,
+      stores:stores
     };
   };
   const handleEdit = async () => {
@@ -403,7 +461,7 @@ export default function Users() {
     const req = (await updateUser(
       userId as string,
       transformData(newData),
-      token as string
+      token as string,
     )) as Response;
     setDetailCardLoading(false);
     if (req.state) {
@@ -413,11 +471,10 @@ export default function Users() {
       setCanSubmit(false);
       setIsEdit(false);
       await fetchData(false);
-
     } else
       handleToast(
         "error",
-        `Hubo un error actualizado usuario, Error: ${req?.message}`
+        `Hubo un error actualizado usuario, Error: ${req?.message}`,
       );
   };
 
@@ -433,13 +490,15 @@ export default function Users() {
     if (!request?.state) {
       handleToast(
         "error",
-        `No fue posible crear Usuario, error: ${request.message}`
+        `No fue posible crear Usuario, error: ${request.message}`,
       );
     } else if (request.state) {
       router.push(`/users?userId=${request.data}`, { scroll: false });
       setInit(edit);
       setIsEdit(false);
       setDetailCardTitle(edit.fullname);
+      const userId = request.data as unknown as string;
+      setUserId(userId)
       handleToast("success", "usuario creado correctamente");
       await fetchData();
       setIsNewUser(false);
@@ -517,6 +576,48 @@ export default function Users() {
     }
   };
 
+  const fetchStores = async (userStores?: Location[]) => {
+    const req = (await getStores(token as string, 1, 20)) as Response;
+    if (req.state) {
+      //@ts-ignore
+      if (req.data.length > 0) {
+        setInitTemplate(prev => ({...prev, stores: { ...prev.stores, shouldDisplay: true}}))
+        //@ts-ignore
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stores = req.data.map((item: IStore) => ({
+          label: item.title,
+          value: item.storeId,
+          isChecked: false,
+        }));
+        if (userStores?.length === 0 || !userStores) {
+          setInitTemplate((prev) => ({
+            ...prev,
+            stores: { ...prev.stores, values: stores },
+          }));
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        else
+          setInitTemplate((prev: any) => {
+            const merged = [...prev.stores.values, ...stores];
+            const unique = merged.reduce((acc, curr) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              if (!acc.some((item: any) => item.value === curr.value)) {
+                acc.push(curr);
+              }
+              return acc;
+            }, []);
+            return {
+              ...prev,
+              stores: {
+                ...prev.stores,
+                values: unique,
+              },
+            };
+          });
+      }
+    }
+  };
+
   function handleNewUser() {
     setDetailCardState(!DetailCardCardState);
     fetchLocations();
@@ -546,27 +647,55 @@ export default function Users() {
     }
   };
 
+    useEffect(() => {
+    setIsEdit(wasEdited());
+    setCanSubmit(handleCanSubmit());
+  }, [edit]);
+
+
+    useEffect(() => {
+      if (edit.location && edit.location.length > 0) {
+        fetchStores(edit.stores);
+      } else {
+        setInitTemplate(prev => ({
+          ...prev,
+          stores: { ...prev.stores, shouldDisplay: false }
+        }));
+      }
+    }, [edit.location]);
+
+  useEffect(() => {
+    fetchData();
+    const newUser = searchParams.get("newUser");
+    const user = searchParams.get("userId");
+    fetchLocations();
+    if (user) {
+      getUserFromList(user);
+    }
+    if (newUser) {
+      setDetailCardState(true);
+    }
+  }, []);
   return (
     <>
-    <Suspense fallback={null}>
-
-    <DetailCard
-        detailCardState={DetailCardCardState}
-        handleDetailState={hideDetailCard}
-        headerTitle={detailCardTitle}
-        buttonSaveTitle={saveTitle}
-        template={initTemplate}
-        values={edit}
-        handleValues={handleInputs}
-        canSubmit={canSubmit}
-        isEdit={isEdit}
-        handleSubmit={handleSubmit}
-        handleListValues={handleListValues}
-        isLoading={detailCardLoading}
-        isNewItem={isNewUser}
-        detailCardOptions={detailOptions}
+      <Suspense fallback={null}>
+        <DetailCard
+          detailCardState={DetailCardCardState}
+          handleDetailState={hideDetailCard}
+          headerTitle={detailCardTitle}
+          buttonSaveTitle={saveTitle}
+          template={initTemplate}
+          values={edit}
+          handleValues={handleInputs}
+          canSubmit={canSubmit}
+          isEdit={isEdit}
+          handleSubmit={handleSubmit}
+          handleListValues={handleListValues}
+          isLoading={detailCardLoading}
+          isNewItem={isNewUser}
+          detailCardOptions={detailOptions}
         />
-        </Suspense>
+      </Suspense>
       <div className="main-content">
         <h1 className="main-header">Usuarios</h1>
 
@@ -603,7 +732,7 @@ export default function Users() {
                   </td>
                 </tr>
               ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((user:UserTemplate) => (
+                filteredUsers.map((user: UserTemplate) => (
                   <tr
                     key={user.userId}
                     className=""

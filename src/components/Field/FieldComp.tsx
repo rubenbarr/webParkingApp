@@ -13,6 +13,7 @@ interface FieldType {
   isEditing?: boolean;
   canBeModified?: boolean;
   disable?: boolean
+  shouldDisplay?:boolean
 }
 
 export default function FieldComp({
@@ -25,7 +26,8 @@ export default function FieldComp({
   isEditing = false,
   canBeModified = true,
   value,
-  disable = false
+  disable = false,
+  shouldDisplay
 }: FieldType) {
   const returnType = () => {
     switch (type) {
@@ -61,14 +63,14 @@ export default function FieldComp({
           </select>
         );
       case "datalist":
-        return (
-          <button
+          return (
+            <button
             disabled = {disable}
             className={cn([styles["input-field"]], [styles["button"], {[styles['disabled']]: disable}])}
             onClick={() => {
               handleOptions(ind);
             }}
-          >
+            >
   
             {"seleccionados: " + (typeof value ==="object" && value?.length)}
           </button>
@@ -86,10 +88,10 @@ export default function FieldComp({
   return (
     <div className={cn(styles["input-container"])}>
       <div className={styles['labels-container']}>
-        <label className={cn(styles["input-label"])}>{label}</label>
-        {returnLabelBlocked()}
+        { shouldDisplay && <label className={cn(styles["input-label"])}>{label}</label>}
+        { shouldDisplay && returnLabelBlocked()}
       </div>
-      {returnType()}
+      { shouldDisplay && returnType()}
     </div>
   );
 }
