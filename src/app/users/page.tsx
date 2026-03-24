@@ -319,8 +319,6 @@ export default function Users() {
   }
 
 
-  console.log(initTemplate);
-
   const handleListValues = (
     key: keyof UserTemplate,
     value: string,
@@ -331,7 +329,7 @@ export default function Users() {
 
     const currentIds = editArray.map((i: any) => i.id);
 
-    const templateValues = initTemplate[key].values;
+    const templateValues = initTemplate[key as any].values as any;
 
     if (wasChecked) {
       if (!currentIds.includes(value)) {
@@ -351,7 +349,7 @@ export default function Users() {
         setInitTemplate(prev => ({
           ...prev,
           [key]: {
-            ...prev[key],
+            ...prev[key as any],
             values: updatedTemplate,
           },
         }));
