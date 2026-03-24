@@ -458,13 +458,13 @@ export default function Users() {
       stores: stores,
     };
     if (!data.stores) {
-      delete newData.stores;
+      delete (newData as any).stores;
     }
     if (!data.location) {
-      delete newData.location;
+      delete (newData as any).location;
     }
     if (!data.permissions && !data.stores) {
-      delete newData.permissions;
+      delete (newData as any).permissions;
     }
     return newData;
   };
