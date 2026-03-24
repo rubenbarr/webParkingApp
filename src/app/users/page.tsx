@@ -85,6 +85,9 @@ interface ITemplate {
   };
 }
 
+type SelectionsType  =  Pick<ITemplate, 'stores' | 'location' | 'type' >
+
+
 export default function Users() {
   const template = {
     fullname: {
@@ -329,7 +332,8 @@ export default function Users() {
 
     const currentIds = editArray.map((i: any) => i.id);
 
-    const templateValues = initTemplate[key as any].values as any;
+    const template = initTemplate[key as keyof SelectionsType];
+    const templateValues = template.values
 
     if (wasChecked) {
       if (!currentIds.includes(value)) {
@@ -349,7 +353,7 @@ export default function Users() {
         setInitTemplate(prev => ({
           ...prev,
           [key]: {
-            ...prev[key as any],
+            ...prev[key as keyof SelectionsType ],
             values: updatedTemplate,
           },
         }));
@@ -371,7 +375,7 @@ export default function Users() {
       setInitTemplate(prev => ({
         ...prev,
         [key]: {
-          ...prev[key],
+          ...prev[key as keyof SelectionsType],
           values: updatedTemplate,
         },
       }));
