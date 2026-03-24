@@ -466,7 +466,6 @@ export default function Users() {
     if (!data.permissions && !data.stores) {
       delete newData.permissions;
     }
-
     return newData;
   };
 
