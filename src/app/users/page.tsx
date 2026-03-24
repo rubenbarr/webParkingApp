@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
-import React, { useEffect, useState, lazy, Suspense, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  lazy,
+  Suspense,
+  useMemo,
+  useCallback,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { TrashIcon } from "lucide-react";
 
@@ -38,12 +45,13 @@ export interface UserTemplate {
   phone: string;
   direction: string;
   email: string;
-  location?: Location[] | [];
+  location?: Location[];
   userId?: string;
   status?: string;
   type?: string;
   createdAt?: string;
   stores?: Location[];
+  permissions?: string []
 }
 interface Ivalues {
   value: string;
@@ -85,8 +93,7 @@ interface ITemplate {
   };
 }
 
-type SelectionsType  =  Pick<ITemplate, 'stores' | 'location' | 'type' >
-
+type SelectionsType = Pick<ITemplate, "stores" | "location" | "type">;
 
 export default function Users() {
   const template = {
@@ -171,7 +178,7 @@ export default function Users() {
   const [temporalEdit, setTemporalEdit] =
     useState<UserTemplate>(initialDataState);
   const [detailCardLoading, setDetailCardLoading] = useState(false);
-  const [page, setPage] = useState(1); 
+  const [page, setPage] = useState(1);
   const [canLoadMore, setCanLoadmore] = useState(true);
   const [isNewUser, setIsNewUser] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -271,15 +278,15 @@ export default function Users() {
         stores.push(i.id);
       });
     }
-    const permissions = []
-    if(stores.length > 0) {
-      permissions.push('validations')
+    const permissions = [];
+    if (stores.length > 0) {
+      permissions.push("validations");
     }
     const newData = {
       ...data,
       location: locations,
       stores: stores,
-      permissions: permissions
+      permissions: permissions,
     };
     return newData;
   }
@@ -321,39 +328,39 @@ export default function Users() {
     }
   }
 
-
   const handleListValues = (
-    key: keyof UserTemplate,
+    key: string,
     value: string,
     wasChecked: boolean,
-    label: string
+    label: string,
   ) => {
-    const editArray = Array.isArray(edit[key]) ? [...edit[key]] : [];
+    if (key !== "stores" && key !== "location") return;
 
+    const editArray = Array.isArray(edit[key])
+      ? [...(edit[key] as Location[])]
+      : [];
     const currentIds = editArray.map((i: any) => i.id);
 
     const template = initTemplate[key as keyof SelectionsType];
-    const templateValues = template.values
+    const templateValues = template.values;
 
     if (wasChecked) {
       if (!currentIds.includes(value)) {
         const newItem = { id: value, name: label };
 
-        const updatedTemplate = templateValues.map(item =>
-          item.value === value
-            ? { ...item, isChecked: true }
-            : item
+        const updatedTemplate = templateValues.map((item) =>
+          item.value === value ? { ...item, isChecked: true } : item,
         );
 
-        setEdit(prev => ({
+        setEdit((prev) => ({
           ...prev,
           [key]: [...editArray, newItem],
         }));
 
-        setInitTemplate(prev => ({
+        setInitTemplate((prev) => ({
           ...prev,
           [key]: {
-            ...prev[key as keyof SelectionsType ],
+            ...prev[key as keyof SelectionsType],
             values: updatedTemplate,
           },
         }));
@@ -361,18 +368,16 @@ export default function Users() {
     } else {
       const filtered = editArray.filter((i: any) => i.id !== value);
 
-      const updatedTemplate = templateValues.map(item =>
-        item.value === value
-          ? { ...item, isChecked: false }
-          : item
+      const updatedTemplate = templateValues.map((item) =>
+        item.value === value ? { ...item, isChecked: false } : item,
       );
 
-      setEdit(prev => ({
+      setEdit((prev) => ({
         ...prev,
         [key]: filtered,
       }));
 
-      setInitTemplate(prev => ({
+      setInitTemplate((prev) => ({
         ...prev,
         [key]: {
           ...prev[key as keyof SelectionsType],
@@ -425,27 +430,46 @@ export default function Users() {
 
   const transformData = (data: UserTemplate) => {
     const newLocations = [] as string[];
+
     if (data.location && data.location.length > 0) {
       data.location.forEach((i: Location) => newLocations.push(i.id));
     }
+
     const stores: string[] = [];
+
     if (data.stores && data.stores?.length > 0) {
       data.stores.forEach((i) => {
         stores.push(i.id);
       });
     }
-    const permissions = []
-    if(stores.length > 0) {
-      permissions.push('validations')
+
+    const permissions = [];
+
+    if (stores.length > 0) {
+      permissions.push("validations");
     }
-    delete data.location;
-    return {
+
+    console.log(permissions);
+
+    const newData = {
       ...data,
       location: newLocations,
-      permissions:permissions,
-      stores:stores
+      permissions: permissions,
+      stores: stores,
     };
+    if (!data.stores) {
+      delete newData.stores;
+    }
+    if (!data.location) {
+      delete newData.location;
+    }
+    if (!data.permissions && !data.stores) {
+      delete newData.permissions;
+    }
+
+    return newData;
   };
+
   const handleEdit = async () => {
     const editKeys = Object.keys(initialDataState);
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -459,6 +483,7 @@ export default function Users() {
       }
       return acc;
     }, {});
+
     setDetailCardLoading(true);
     const req = (await updateUser(
       userId as string,
@@ -500,7 +525,7 @@ export default function Users() {
       setIsEdit(false);
       setDetailCardTitle(edit.fullname);
       const userId = request.data as unknown as string;
-      setUserId(userId)
+      setUserId(userId);
       handleToast("success", "usuario creado correctamente");
       await fetchData();
       setIsNewUser(false);
@@ -583,7 +608,10 @@ export default function Users() {
     if (req.state) {
       //@ts-ignore
       if (req.data.length > 0) {
-        setInitTemplate(prev => ({...prev, stores: { ...prev.stores, shouldDisplay: true}}))
+        setInitTemplate((prev) => ({
+          ...prev,
+          stores: { ...prev.stores, shouldDisplay: true },
+        }));
         //@ts-ignore
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const stores = req.data.map((item: IStore) => ({
@@ -649,22 +677,21 @@ export default function Users() {
     }
   };
 
-    useEffect(() => {
+  useEffect(() => {
     setIsEdit(wasEdited());
     setCanSubmit(handleCanSubmit());
   }, [edit]);
 
-
-    useEffect(() => {
-      if (edit.location && edit.location.length > 0) {
-        fetchStores(edit.stores);
-      } else {
-        setInitTemplate(prev => ({
-          ...prev,
-          stores: { ...prev.stores, shouldDisplay: false }
-        }));
-      }
-    }, [edit.location]);
+  useEffect(() => {
+    if (edit.location && edit.location.length > 0) {
+      fetchStores(edit.stores);
+    } else {
+      setInitTemplate((prev) => ({
+        ...prev,
+        stores: { ...prev.stores, shouldDisplay: false },
+      }));
+    }
+  }, [edit.location]);
 
   useEffect(() => {
     fetchData();
