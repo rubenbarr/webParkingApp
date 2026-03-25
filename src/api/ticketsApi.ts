@@ -128,4 +128,23 @@ export async function getFinancialData(
   } catch (error) {
     return error;
   }
+
+}
+export async function manualVehicleValidation(
+  token: string,
+  locationId: string,
+  ticketId: string
+) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/ticketRoute/manualValidation/${ticketId}?locationId=${locationId}`,
+      {
+        method: POST,
+        headers: { ...headers(token) },
+      },
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
 }

@@ -53,7 +53,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     "dashboard",
     "ticketPayment",
     "settingsPage",
-    "ticketValidation"
+    "ticketValidation",
+    "manualValidation"
   ];
   const businessUrls = ["dashboard", "settingsPage", "ticketValidation"];
   const renderSideMenu = (userType: string) => {

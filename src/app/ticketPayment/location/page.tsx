@@ -853,6 +853,7 @@ export default function PayTicketInLocation() {
         </div>
         {hasCredit && (
           <>
+          <button className="primary-button" onClick={() => {router.replace(`/manualValidation?locationId=${locationId}` )}}>Validacion manual de ticket</button>
             <div className="header-container">
               <div className="options-header">
                 <h1 className="main-header">Pago De ticket</h1>
