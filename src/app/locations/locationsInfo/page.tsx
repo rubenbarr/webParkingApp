@@ -237,9 +237,17 @@ export default function Page() {
             <b>{"Estado: "}</b>
             {ticketInfo?.estado}
           </label>
+          {/* <label>
+            <b>{"total de minutos: "}</b>
+            {ticketInfo?.minutos_dentro}
+          </label> */}
           <label>
             <b>{"total de horas dentro: "}</b>
             {ticketInfo?.total_time}
+          </label>
+          <label>
+            <b>{"coche dentro: "}</b>
+            {ticketInfo?.cocheDentro ? "Si" : "No"}
           </label>
           <label>
             <b>{"Salio: "}</b>
