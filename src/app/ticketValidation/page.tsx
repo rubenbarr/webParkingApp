@@ -364,11 +364,17 @@ export default function TicketValidation() {
     return () => clearTimeout(debounceTimer)
   }, [result]);
 
+  // useEffect(() => {
+  //   if(autoValidation || autoCancelValidation) { 
+  //     navigator.mediaDevices.getUserMedia({ video: true });
+  //   }
+  // }, [autoValidation, autoCancelValidation]);
+
   useEffect(() => {
-    if(autoValidation || autoCancelValidation) { 
+    // if(autoValidation || autoCancelValidation) { 
       navigator.mediaDevices.getUserMedia({ video: true });
-    }
-  }, [autoValidation, autoCancelValidation]);
+    // }
+  }, []);
   
   useEffect(() => {
     getLocations();
