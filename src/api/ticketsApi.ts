@@ -7,13 +7,14 @@ export async function getTicketInfoById(
   token: string,
   ticketId: string,
   locationId: string,
+  shouldDisplay:boolean = false
 ) {
   try {
     const req = await fetchWithTimeout(
-      `${LOCALHOST}/api/ticketRoute/checkTicket/${ticketId}`,
+      `${LOCALHOST}/api/ticketRoute/checkTicket/${ticketId}?shouldDisplay=${shouldDisplay}`,
       {
         method: POST,
-        headers: { ...headers(token), locationId, external: true as any },
+        headers: { ...headers(token), locationId, external: true as any  },
       },
     );
     return req;

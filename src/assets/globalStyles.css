@@ -463,7 +463,19 @@ table {
         background-color: rgb(241, 241, 241);
         transform: translateY(-2px);
     }
+  }
 }
+
+.input-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  > .input-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+  }
 }
 
   .trash-icon-container {

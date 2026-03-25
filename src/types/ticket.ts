@@ -64,4 +64,5 @@ export interface ITicket {
   storeName: string
   minutos_dentro: string
   global_time_in: number
+  paidBy:string;
 }

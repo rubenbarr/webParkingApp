@@ -17,6 +17,10 @@ import {
   ITicketsParams,
 } from "@/store/slices/locationInfoSlice";
 import { transformToCurrency } from "@/assets/utils";
+import { ArrowRightIcon, ArrowUp, TrashIcon } from "lucide-react";
+import { ITicket } from "@/types/ticket";
+import { getTicketInfoById } from "@/api/ticketsApi";
+import { Response } from "@/api/usersApi";
 
 export default function Page() {
   const { isLoadingGlobal, setLoadingGlobal, token, handleToast } = useAuth();
@@ -35,7 +39,9 @@ export default function Page() {
     (state: RootState) => state.ticketsInfo,
   );
 
-  const { data } = useSelector( (state:RootState) => state.financialDataReducer)
+  const { data } = useSelector(
+    (state: RootState) => state.financialDataReducer,
+  );
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,6 +56,14 @@ export default function Page() {
   );
   const [ticketsPage, setTicketsPage] = useState(1);
   const [ticketsLimit, setTicketsLimit] = useState(100);
+  const [shouldDisplayOperatorsTable, setShouldDisplayOperatorsTable] =
+    useState(false);
+  const [shouldDisplayKioscoTable, setShouldDisplayKioscoTable] =
+    useState(false);
+  const [ticketInfo, setTicketInfo] = useState<ITicket | null>(null);
+  const [ticketId, setTicketId] = useState("")
+
+  //  end of declaration state
 
   function getLocationInfo(token: string, locationId: string) {
     setLoadingGlobal(true);
@@ -65,29 +79,49 @@ export default function Page() {
       .finally(() => setLoadingGlobal(false));
   }
 
-  function dispatchFinancialData(params:ITicketsParams) {
-  setLoadingGlobal(true);
-  dispatch(fetchLocationFinancialData(params))
-  .unwrap()
-  .finally(()=> setLoadingGlobal(false));
+  function dispatchFinancialData(params: ITicketsParams) {
+    setLoadingGlobal(true);
+    dispatch(fetchLocationFinancialData(params))
+      .unwrap()
+      .finally(() => setLoadingGlobal(false));
   }
 
-
-  function loadMore(){
+  function loadMore() {
     if (token && locationId) {
       const page = ticketsPage + 1;
       setTicketsPage(page);
-        dispatchTickets({
-          token,
-          locationId,
-          page,
-          limit: ticketsLimit,
-          fromDate,
-          toDate,
-        });
-      }
+      dispatchTickets({
+        token,
+        locationId,
+        page,
+        limit: ticketsLimit,
+        fromDate,
+        toDate,
+      });
+    }
   }
 
+  async function  getTicketByIdReq(ticketId:string) {
+    try {
+      setLoadingGlobal(true);
+      setTicketInfo(null)
+      if (!token || !locationId) return;
+
+      const req = await getTicketInfoById(token as string, ticketId, locationId as string, true) as Response;
+      if (!req.state)
+        return handleToast("error", req?.message || req?.error || "Error obteniendo informacion de ticket, comuniquese con administracion")
+      
+      setTicketInfo(req.data as ITicket);
+            
+
+    } catch (error) {
+      handleToast("error", "Error obteniendo informacion")
+      setTicketInfo(null)
+    } finally {
+      setLoadingGlobal(false);
+    }
+    
+  }
 
   useEffect(() => {
     const locationId = searchParams.get("locationId");
@@ -110,7 +144,7 @@ export default function Page() {
           limit: ticketsLimit,
           fromDate,
           toDate,
-        })
+        });
       }
     } else router.replace("/locations");
   }, []);
@@ -177,40 +211,132 @@ export default function Page() {
     );
   };
 
+  const ticketInformationcontainer = () => {
+    return (
+      <div className="entity-content">
+        <b>Busqueda de ticket</b>
+
+        <p>Buscar ticket por Id</p>
+        <div className="input-row">
+          <input type="text" className="main-input" placeholder="ticketId" value={ticketId}  onChange={(e) => {setTicketId(e.target.value);}}/>
+          <div className="input-buttons">
+            <button className="trash-icon-container" onClick={() => {setTicketId("")}}>
+              <TrashIcon />
+            </button>
+            <button onClick={() => getTicketByIdReq(ticketId)} className="primary-button" disabled={isLoadingGlobal || ticketId === ""}>
+              Buscar Ticket
+            </button>
+          </div>
+        </div>
+      { ticketInfo && <div className="main-entity-content">
+          <label>
+            <b>{"Fecha de entrada: "}</b>
+            {transformDate(ticketInfo?.fechaEntrada)}
+          </label>
+          <label>
+            <b>{"Estado: "}</b>
+            {ticketInfo?.estado}
+          </label>
+          <label>
+            <b>{"total de horas dentro: "}</b>
+            {ticketInfo?.total_time}
+          </label>
+          <label>
+            <b>{"Salio: "}</b>
+            {ticketInfo?.cerrado ? "Si" : "No"}
+          </label>
+{  ticketInfo?.cerrado  && 
+            ( 
+            <>
+              <label>
+                <b>{"Fecha Salida: "}</b>
+                  {transformDate(ticketInfo?.fechaSalida)}
+              </label>
+              <label>
+                <b>{"Tiempo dentro en min: "}</b>
+                  {ticketInfo.global_time_in}
+              </label>
+            </>
+            )
+          }
+            {   ticketInfo?.estado === "pagado" &&       <label>
+            <b>{"Pagado por: "}</b>
+            {ticketInfo?.paidBy}
+          </label>}
+          {ticketInfo?.estado === "pagado" && (
+            <div className="ticket-payment-Info">
+              <label htmlFor="">Informacion de ultimo pago</label>
+              <p className="info-content">
+                <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
+                <label htmlFor="">
+                  {ticketInfo?.tiempo_despues_de_utimo_pago}
+                </label>
+              </p>
+              <b>Historial de pagos de ticket</b>
+              {ticketInfo?.dataPayment.map((item, index) => (
+                <div key={item.id} className="ticket-info-content">
+                  <p className="info-content">
+                    <b>{"No. de pago: "}</b> <label> {index + 1}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Fecha de pago: "}</b>{" "}
+                    <label> {transformDate(item?.fechaPago)}</label>
+                  </p>
+                  <p className="info-content">
+                    <b>{"Total pagado: "}</b>{" "}
+                    <label> {transformToCurrency(item?.amount || 0)}</label>
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>}
+      </div>
+    );
+  };
+
   const operatorsList = () => {
     return (
       <div className="primary-content dataSet">
         <div className="header-content">
           <div className="header-row">
             <label className="header-title">Operadores</label>
+            <button
+              className="trash-icon-container"
+              onClick={() => setShouldDisplayOperatorsTable((prev) => !prev)}
+            >
+              {shouldDisplayOperatorsTable ? <ArrowUp /> : <ArrowRightIcon />}
+            </button>
           </div>
         </div>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th className="">Item</th>
-                <th className="">Operador</th>
-              </tr>
-            </thead>
-            <tbody>
-              {locationData?.operators &&
-              Array.isArray(locationData.operators) &&
-              locationData.operators.length !== 0 ? (
-                locationData.operators.map((item, index) => (
-                  <tr key={index}>
-                    <td>{index + 1}</td>
-                    <td>{item.name}</td>
-                  </tr>
-                ))
-              ) : (
+        {shouldDisplayOperatorsTable && (
+          <div className="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={2}>Sin datos</td>
+                  <th className="">Item</th>
+                  <th className="">Operador</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {locationData?.operators &&
+                Array.isArray(locationData.operators) &&
+                locationData.operators.length !== 0 ? (
+                  locationData.operators.map((item, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{item.name}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2}>Sin datos</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   };
@@ -221,34 +347,42 @@ export default function Page() {
         <div className="header-content">
           <div className="header-row">
             <label className="header-title">Kioscos</label>
+            <button
+              className="trash-icon-container"
+              onClick={() => setShouldDisplayKioscoTable((prev) => !prev)}
+            >
+              {shouldDisplayKioscoTable ? <ArrowUp /> : <ArrowRightIcon />}
+            </button>
           </div>
         </div>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th className="">Item</th>
-                <th className="">Operador</th>
-              </tr>
-            </thead>
-            <tbody>
-              {locationData?.kioscos &&
-              Array.isArray(locationData.kioscos) &&
-              locationData.kioscos.length !== 0 ? (
-                locationData.kioscos.map((item, index) => (
-                  <tr key={index}>
-                    <td>{index + 1}</td>
-                    <td>{item.name}</td>
-                  </tr>
-                ))
-              ) : (
+        {shouldDisplayKioscoTable && (
+          <div className="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={2}>Sin datos</td>
+                  <th className="">Item</th>
+                  <th className="">Operador</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {locationData?.kioscos &&
+                Array.isArray(locationData.kioscos) &&
+                locationData.kioscos.length !== 0 ? (
+                  locationData.kioscos.map((item, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{item.name}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2}>Sin datos</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   };
@@ -265,7 +399,7 @@ export default function Page() {
             <b>{"Fecha Actual: "}</b> {currentDate}
           </label>
           <div className="financial-content-body">
-                        <div className="row">
+            <div className="row">
               <label>Buscar por fecha</label>
               <div className="content-row">
                 <div className="input-dates-row">
@@ -288,7 +422,7 @@ export default function Page() {
                   <button
                     className="primary-button"
                     onClick={() => {
-                      setTicketsPage(1)
+                      setTicketsPage(1);
                       getTickets();
                       getFinancialData();
                     }}
@@ -313,10 +447,14 @@ export default function Page() {
                   <b>{"Entradas del día: "}</b> {data?.totalCarsIn}
                 </label>
                 <label>
-                  <b>{"Tickets pagados: "}</b>{data?.totalPayed}
+                  <b>{"Tickets pagados: "}</b>
+                  {data?.totalPayed}
                 </label>
                 <label>
-                  <b>{"Pagos del dia: "}</b>{data?.totalPaid ? transformToCurrency(data.totalPaid) : transformToCurrency(0)}
+                  <b>{"Pagos del dia: "}</b>
+                  {data?.totalPaid
+                    ? transformToCurrency(data.totalPaid)
+                    : transformToCurrency(0)}
                 </label>
               </div>
             </div>
@@ -334,7 +472,6 @@ export default function Page() {
                 </label> */}
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -344,7 +481,7 @@ export default function Page() {
   const ticketList = () => {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        <label htmlFor="">Lista de tickets</label>
+        <b>Lista de tickets</b>
         <div className="table-container">
           <table>
             <thead>
@@ -367,7 +504,7 @@ export default function Page() {
                 </tr>
               ) : (
                 tickets?.map((item, index) => (
-                  <tr key={index}>
+                  <tr key={index} onClick={() => { setTicketId(item.ticketId); getTicketByIdReq(item.ticketId)}}>
                     <td>{index + 1}</td>
                     <td>
                       {item.fechaEntrada && transformDate(item.fechaEntrada)}
@@ -399,7 +536,9 @@ export default function Page() {
         </div>
         {canLoadMore && (
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <button className="primary-button" onClick={loadMore}>Cargar Mas</button>
+            <button className="primary-button" onClick={loadMore}>
+              Cargar Mas
+            </button>
           </div>
         )}
       </div>
@@ -424,6 +563,7 @@ export default function Page() {
         {operatorsList()}
         {kioskList()}
         {financialContent()}
+        {ticketInformationcontainer()}
         {ticketList()}
       </div>
     </>

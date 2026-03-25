@@ -700,7 +700,7 @@ export default function PayTicketInLocation() {
                     </label>
                   </p>
                   <p className="info-content">
-                    <b>{"Total de minutos(hrs): "}</b>{" "}
+                    <b>{"Total de minutos: "}</b>{" "}
                     <label> {ticketInfo?.minutos_dentro}</label>
                   </p>
                   <p className="info-content">
