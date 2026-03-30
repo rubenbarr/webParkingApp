@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { lazy, useEffect, useState } from "react";
+import React, { Fragment, lazy, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 
@@ -9,18 +9,23 @@ import cn from "classnames";
 
 import { useAuth } from "@/context/AuthContext";
 
-import "./kioscoInfoStyles.scss";
 import {
+  fetchExitBarrierHistory,
   fetchLocationFinancialData,
   fetchLocationInfo,
   fetchTickets,
   ITicketsParams,
+  fetchBarrierHistory
 } from "@/store/slices/locationInfoSlice";
+
 import { transformToCurrency } from "@/assets/utils";
 import { ArrowRightIcon, ArrowUp, TrashIcon } from "lucide-react";
 import { ITicket } from "@/types/ticket";
 import { getTicketInfoById } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
+
+import "./locationInfoStyle.scss";
+
 
 export default function Page() {
   const { isLoadingGlobal, setLoadingGlobal, token, handleToast } = useAuth();
@@ -35,6 +40,10 @@ export default function Page() {
     (state: RootState) => state.locationInfo,
   );
 
+  const { historyList, canLoadMoreBarrierList } = useSelector(
+    (state:RootState) => state.barrierListHistoryReducer
+  )
+
   const { tickets, loading, error, errorMessage, canLoadMore } = useSelector(
     (state: RootState) => state.ticketsInfo,
   );
@@ -42,6 +51,8 @@ export default function Page() {
   const { data } = useSelector(
     (state: RootState) => state.financialDataReducer,
   );
+
+  const { barrierSummary } = useSelector((state:RootState) => state.barrierHistoryReducer);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -59,6 +70,8 @@ export default function Page() {
   const [shouldDisplayOperatorsTable, setShouldDisplayOperatorsTable] =
     useState(false);
   const [shouldDisplayKioscoTable, setShouldDisplayKioscoTable] =
+    useState(false);
+  const [shouldDisplayBarrierTable, setShouldDisplayBarrierTable] =
     useState(false);
   const [ticketInfo, setTicketInfo] = useState<ITicket | null>(null);
   const [ticketId, setTicketId] = useState("")
@@ -79,9 +92,23 @@ export default function Page() {
       .finally(() => setLoadingGlobal(false));
   }
 
+  function dispatchBarrierList(params: ITicketsParams) {
+    setLoadingGlobal(true);
+    dispatch(fetchBarrierHistory(params))
+      .unwrap()
+      .finally(() => setLoadingGlobal(false));
+  }
+
   function dispatchFinancialData(params: ITicketsParams) {
     setLoadingGlobal(true);
     dispatch(fetchLocationFinancialData(params))
+      .unwrap()
+      .finally(() => setLoadingGlobal(false));
+  }
+
+  function dispatchBarrierSummary(params: ITicketsParams) {
+    setLoadingGlobal(true);
+    dispatch(fetchExitBarrierHistory(params))
       .unwrap()
       .finally(() => setLoadingGlobal(false));
   }
@@ -91,6 +118,20 @@ export default function Page() {
       const page = ticketsPage + 1;
       setTicketsPage(page);
       dispatchTickets({
+        token,
+        locationId,
+        page,
+        limit: ticketsLimit,
+        fromDate,
+        toDate,
+      });
+    }
+  }
+  function loadMoreBarrierList() {
+    if (token && locationId) {
+      const page = ticketsPage + 1;
+      setTicketsPage(page);
+      dispatchBarrierList({
         token,
         locationId,
         page,
@@ -137,7 +178,23 @@ export default function Page() {
           fromDate,
           toDate,
         });
+        dispatchBarrierList({
+          token,
+          locationId,
+          page: ticketsPage,
+          limit: ticketsLimit,
+          fromDate,
+          toDate,
+        });
         dispatchFinancialData({
+          token,
+          locationId,
+          page: ticketsPage,
+          limit: ticketsLimit,
+          fromDate,
+          toDate,
+        });
+        dispatchBarrierSummary({
           token,
           locationId,
           page: ticketsPage,
@@ -160,7 +217,29 @@ export default function Page() {
       toDate,
     });
   }
+  function getBarrierlist() {
+    if (!token || !locationId) return;
+    dispatchBarrierList({
+      token,
+      locationId,
+      page: 1,
+      limit: ticketsLimit,
+      fromDate,
+      toDate,
+    });
+  }
 
+  function getBarrierSumReq() {
+    if (!token || !locationId) return;
+      dispatchBarrierSummary({
+        token,
+        locationId,
+        page: ticketsPage,
+        limit: ticketsLimit,
+        fromDate,
+        toDate,
+      });
+  }
   function getFinancialData() {
     if (!token || !locationId) return;
     dispatchFinancialData({
@@ -394,6 +473,61 @@ export default function Page() {
       </div>
     );
   };
+  const barrierHistorytable = () => {
+    return (
+      <div className="primary-content dataSet">
+        <div className="header-content">
+          <div className="header-row">
+            <label className="header-title">Historial de barreras</label>
+            <button
+              className="trash-icon-container"
+              onClick={() => setShouldDisplayBarrierTable((prev) => !prev)}
+            >
+              {shouldDisplayBarrierTable ? <ArrowUp /> : <ArrowRightIcon />}
+            </button>
+          </div>
+        </div>
+        {shouldDisplayBarrierTable && (
+          <Fragment>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th className="">Item</th>
+                  <th className="">Puerta</th>
+                  <th className="">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historyList.length !== 0 ? (
+                  historyList.map((item, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{item.gateLabel}</td>
+                      <td>{transformDate(item.createdAt)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3}>Sin datos</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        { canLoadMoreBarrierList && (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <button className="primary-button" onClick={loadMoreBarrierList}>
+              Cargar Mas
+            </button>
+          </div>
+        ) }
+        </Fragment>
+        )}
+      </div>
+    );
+  };
 
   const financialContent = () => {
     return (
@@ -433,6 +567,8 @@ export default function Page() {
                       setTicketsPage(1);
                       getTickets();
                       getFinancialData();
+                      getBarrierSumReq();
+                      getBarrierlist();
                     }}
                   >
                     Buscar
@@ -480,8 +616,18 @@ export default function Page() {
                 </label> */}
               </div>
             </div>
+            <div className="row">
+              <b>Historial de boton de barrera de salida</b>
+                <div className="content-row">
+                <label>
+                  <b>{"Total de conteo: "}</b> {barrierSummary?.total}
+                </label>
+
+              </div>
+            </div>
           </div>
         </div>
+          {barrierHistorytable()}
       </div>
     );
   };

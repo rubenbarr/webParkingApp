@@ -1,4 +1,4 @@
-import { getLocationById } from "@/api/locationApi";
+import { getBarrierHistory, getBarrierHistorySummary, getLocationById } from "@/api/locationApi";
 import { getFinancialData, getTicketsFromLocation } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 import { ITicket } from "@/types/ticket";
@@ -29,6 +29,23 @@ export interface LocationInfo {
     error: boolean | null;
     errorMessage: string | null;
 }
+interface BarrierSummary {
+    id: string;
+    total: number
+}
+export interface BarrierSummaryType {
+    loading: boolean;
+    barrierSummary: BarrierSummary | null;
+    error: boolean | null;
+    errorMessage: string | null;
+}
+
+export interface BarrierHistoryType {
+    createdAt:string;
+    gateLabel: string;
+    locationId: string;
+    requestId: string;
+}
 
 type LocationState = {
     loading: boolean;
@@ -54,6 +71,13 @@ interface ITicketsInitialState {
     tickets: ITicket[];
     errorMessage: string | null;
     canLoadMore: boolean;
+}
+interface IBarrierHistoryType {
+    loading: boolean;
+    error: boolean | null;
+    historyList: BarrierHistoryType[];
+    errorMessage: string | null;
+    canLoadMoreBarrierList: boolean;
 }
 
 
@@ -90,6 +114,12 @@ const initialStateLocationInformation: LocationInfo = {
     error:  null,
     errorMessage: null,
 }
+const initialStateBarrierHistory: BarrierSummaryType = {
+    loading: false,
+    barrierSummary:  null,
+    error:  null,
+    errorMessage: null,
+}
 
 const initialTicketsState: ITicketsInitialState  = {
     loading: false,
@@ -97,6 +127,13 @@ const initialTicketsState: ITicketsInitialState  = {
     tickets: [],
     errorMessage: null,
     canLoadMore: false,
+}
+const initialBarrierHistoryState: IBarrierHistoryType  = {
+    loading: false,
+    error: null,
+    historyList: [],
+    errorMessage: null,
+    canLoadMoreBarrierList: false,
 }
 
 
@@ -120,12 +157,28 @@ export const fetchTickets = createAsyncThunk(
     }
 )
 
+export const fetchBarrierHistory = createAsyncThunk(
+    'barrierHistory/fetch',
+    async(params: ITicketsParams) => {
+        const { token, locationId, page, limit, fromDate, toDate  } = params;
+        const req = await getBarrierHistory(token, locationId, page, limit, fromDate, toDate) as Response;
+        return { req, page };
+    }
+)
 
 export const fetchLocationFinancialData = createAsyncThunk(
     'locationsFinancialData',
     async(params: ITicketsParams) => {
         const { token, locationId, fromDate, toDate  } = params;
         const req = await getFinancialData(token, locationId, fromDate, toDate) as Response;
+        return req;
+    }
+)
+export const fetchExitBarrierHistory = createAsyncThunk(
+    'exitBarrierHistory',
+    async(params: ITicketsParams) => {
+        const { token, locationId, fromDate, toDate  } = params;
+        const req = await getBarrierHistorySummary(token, locationId, fromDate, toDate) as Response;
         return req;
     }
 )
@@ -198,6 +251,50 @@ const ticketsSlice = createSlice({
     }
 })
 
+const BarrierListSlice = createSlice({
+    name: 'BarrierListSlice',
+    initialState: initialBarrierHistoryState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+        .addCase(fetchBarrierHistory.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+        })
+        .addCase(fetchBarrierHistory.fulfilled, (state, action) => {
+            state.loading= false;
+            const res = action.payload.req as Response;
+            const page = action.payload.page as number;
+            if (!res.state) {
+                state.error = true
+                state.errorMessage = res?.message || "Error desconocido obteniendo historial de salida"
+            } else {
+                const list = res.data as BarrierHistoryType[]
+                if (list.length === 0) {
+                    state.canLoadMoreBarrierList = false;
+                    if(page ===1) {    
+                        state.historyList = []
+                    }
+                } 
+                else {
+                    state.canLoadMoreBarrierList = true;
+                    if(state.historyList && state.historyList.length > 0 && page > 1) {
+                        state.historyList = [...state.historyList, ...list]
+                    } else {
+                        state.historyList = list
+                    }
+                }
+            }
+
+        })
+        .addCase(fetchBarrierHistory.rejected, (state, action) => {
+            state.loading = false;
+            state.error = true;
+            state.errorMessage = action.error.message || "Error obteniendo tickets, desconocido"
+        })
+    }
+})
+
 
 const  financialDataSlice = createSlice({
     name: "financialData",
@@ -230,8 +327,41 @@ const  financialDataSlice = createSlice({
 
 })
 
+const  barrierHistorySlice = createSlice({
+    name: "barrierHistory",
+    initialState: initialStateBarrierHistory,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+        .addCase(fetchExitBarrierHistory.pending, (state, action) => {
+            state.loading = true;
+            state.error = null;
+        })
+        .addCase(fetchExitBarrierHistory.fulfilled,  (state, action) => {
+            state.loading = false;
+            const res = action.payload;
+            if(!res.state) {
+                state.error = true;
+                state.errorMessage = res.message || "Error desconocido obteniendo datos financieros";
+            } else {
+                state.error = null;
+                state.errorMessage = null;
+                const data = res.data as BarrierSummary[];
+                state.barrierSummary = data[0]
+            }
+        })
+        .addCase(fetchExitBarrierHistory.rejected, (state, action) => {
+            state.error = true;
+            state.errorMessage = action.error.message || "Error desconocido obteniendo datos de apertura de barreara";
+        })
+    }
+
+})
+
 const ticketReducer = ticketsSlice.reducer;
 const locationInfoReducer = locationInfoSlice.reducer;
 const financialDataReducer = financialDataSlice.reducer;
+const barrierHistoryReducer = barrierHistorySlice.reducer
+const barrierListHistoryReducer = BarrierListSlice.reducer
 
-export  { locationInfoReducer, ticketReducer, financialDataReducer };
+export  { locationInfoReducer, ticketReducer, financialDataReducer, barrierHistoryReducer, barrierListHistoryReducer };

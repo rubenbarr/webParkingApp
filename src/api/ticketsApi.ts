@@ -89,6 +89,7 @@ export async function cancelValidationReq(token: string, ticketId: string) {
     return error;
   }
 }
+
 export async function getTicketsFromLocation(
   token: string,
   locationId: string,
@@ -110,6 +111,8 @@ export async function getTicketsFromLocation(
     return error;
   }
 }
+
+
 export async function getFinancialData(
   token: string,
   locationId: string,
@@ -141,6 +144,30 @@ export async function manualVehicleValidation(
       {
         method: POST,
         headers: { ...headers(token) },
+      },
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}
+
+export async function cancelTicket(
+  token: string,
+  locationId: string,
+  ticketId: string,
+  comment: string
+) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/ticketRoute/cancelTicket/${ticketId}`,
+      {
+        method: PATCH,
+        headers: { ...headers(token) },
+        body: JSON.stringify({
+          locationId,
+          comment
+        })
       },
     );
     return req;

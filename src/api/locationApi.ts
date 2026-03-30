@@ -120,3 +120,42 @@ export async function updateLocationById(
     return error;
   }
 }
+
+
+export async function getBarrierHistorySummary(token: string, locationId:string, fromDate: string, toDate: string) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/barrier_register_route/get_summary/${locationId}?fromDate=${fromDate}&toDate=${toDate}`,
+      {
+        method: GET,
+        headers: headers(token),
+      }
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}
+
+
+export async function getBarrierHistory(
+  token: string,
+  locationId: string,
+  page: number,
+  limit: number,
+  fromDate: string,
+  toDate: string,
+) {
+  try {
+    const req = await fetchWithTimeout(
+      `${LOCALHOST}/api/barrier_register_route/get_history/${locationId}?page=${page}&limit=${limit}&dateFrom=${fromDate}&dateTo=${toDate}`,
+      {
+        method: GET,
+        headers: { ...headers(token) },
+      },
+    );
+    return req;
+  } catch (error) {
+    return error;
+  }
+}

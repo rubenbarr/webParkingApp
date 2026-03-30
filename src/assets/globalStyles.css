@@ -153,6 +153,10 @@ align-items: center;
         border: none;
       }
     }
+      &:disabled {
+        background-color: rgb(245, 245, 245);
+        cursor: not-allowed; 
+      }
 }
 
 @media screen and (max-width: 768px) {

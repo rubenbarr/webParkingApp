@@ -3,7 +3,7 @@
 
 import "./payticketlocation.scss";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getLocationById } from "@/api/locationApi";
@@ -20,6 +20,8 @@ import { ITicket } from "@/types/ticket";
 import { PDFViewer } from "@react-pdf/renderer";
 import TicketPDF from "@/components/ReciboTicketPdf/Reciboticket";
 import ButtonOpenBarrier from "@/components/OpenBarrier/ButtonOpenBarrier";
+import Toggle from "@/components/Toggle/ToggleComp";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface ILocation {
   title: string;
@@ -93,6 +95,85 @@ export default function PayTicketInLocation() {
   const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
   const [shouldDisplayPrintButton, setShouldDisplayPrintButton] =
     useState(false);
+  const [manualValidation, setManualValidation] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [shouldDisplayQrReader, setshouldDisplayQrReader] = useState(false);
+  const [qrResult, setQrResult] = useState("");
+
+  const qrRef = useRef<HTMLDivElement>(null);
+  const qrInstance = useRef<Html5Qrcode>(null);
+  const [scanning, setIsScanning] = useState(false);
+
+  const stopScanner = async (eraseResult: boolean) => {
+    try {
+      if (eraseResult) setQrResult("");
+      if (scanning && qrInstance.current) {
+        await qrInstance.current.stop();
+        setIsScanning(false);
+        setError(null);
+      }
+    } catch (error) {
+      handleToast("error", "ups, ubo error refresque la pagina");
+    }
+  };
+
+  const startScanner = async () => {
+    setQrResult("");
+    setError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setError(
+          "Es posible que tu navegador no soporte tu camara, cambia de navegador a google Chrome",
+        );
+        return;
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
+      if (videoDevices.length === 0) {
+        setError(
+          "No se encontro camara para navegar, no es posible realizar validacion",
+        );
+        return;
+      }
+
+      const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
+
+      let cameraId = videoDevices[0].deviceId;
+
+      if (isMobile) {
+        const backCamera = videoDevices.find(
+          (d) =>
+            d.label.toLowerCase().includes("back") ||
+            d.label.toLowerCase().includes("rear") ||
+            d.label.toLowerCase().includes("environment"),
+        );
+        if (backCamera) cameraId = backCamera.deviceId;
+      }
+
+      qrInstance.current = new Html5Qrcode("qr-reader");
+      setIsScanning(true);
+      await qrInstance.current.start(
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        async (decodedText) => {
+          await stopScanner(false);
+          setQrResult(decodedText);
+        },
+        (errorMessage) => {},
+      );
+      setshouldDisplayQrReader(true);
+    } catch (error) {
+      setError(
+        "Error activando tu camara, comunicate con administracion" + `${error}`,
+      );
+      setshouldDisplayQrReader(false);
+    }
+  };
 
   // end initial state
   function refreshCredit() {
@@ -170,6 +251,8 @@ export default function PayTicketInLocation() {
       handleToast("error", `Hubo un error: ${error}`);
     } finally {
       setLoadingGlobal(false);
+      setIsScanning(false);
+      stopScanner(true);
     }
   }
 
@@ -784,6 +867,27 @@ export default function PayTicketInLocation() {
     return () => clearTimeout(delayDebounce);
   }, [ticketId]);
 
+  useEffect(() => {
+    if (!manualValidation) {
+      navigator.mediaDevices.getUserMedia({ video: true });
+    } else {
+      stopScanner(true);
+    }
+  }, [manualValidation]);
+
+  useEffect(() => {
+    if (!qrResult) return;
+
+    const delayDebounce = setTimeout(() => {
+      if (qrResult.length >= 32) {
+        setTicketId(qrResult);
+        getTicketInfo();
+      }
+    }, 300); // wait 300ms after typing stops
+
+    return () => clearTimeout(delayDebounce);
+  }, [qrResult]);
+
   // ends useEffects
 
   const renderButtonToOpenBarrier = () => {
@@ -835,6 +939,73 @@ export default function PayTicketInLocation() {
     );
   };
 
+  const autoValidationElement = () => {
+    if (!scanning) {
+      return (
+        <button className="primary-button" onClick={startScanner}>
+          Validar Ticket con camara
+        </button>
+      );
+    }
+    return (
+      <button className="primary-button" onClick={() => stopScanner(true)}>
+        Cerrar camara y cancelar
+      </button>
+    );
+  };
+
+  const qrReader = () => {
+    return (
+      !error && (
+        <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
+      )
+    );
+  };
+
+  const autoValidationContent = () => {
+    return (
+      !manualValidation && (
+        <>
+          {autoValidationElement()}
+          {qrReader()}
+        </>
+      )
+    );
+  };
+
+  const manualPaymentContainer = () => {
+    return (
+      manualValidation && (
+        <React.Fragment>
+          <label>
+            <b>Ingrese el código qr del ticket</b>
+          </label>
+          <div className="qr-input-container">
+            <input
+              type="text"
+              placeholder="Ticket ID"
+              className="filter-input"
+              value={ticketId}
+              onChange={(e) => {
+                const formattedValue = e.target.value.replace(/'/g, "-");
+                setTicketId(formattedValue);
+              }}
+            />
+            <div
+              className="trash-icon-container"
+              onClick={() => {setTicketId(""); setShouldDisplayTicketInfo(false)}}
+            >
+              <TrashIcon />
+            </div>
+            <button onClick={getTicketInfo} className="primary-button">
+              Buscar
+            </button>
+          </div>
+        </React.Fragment>
+      )
+    );
+  };
+
   return (
     <>
       <div className="main-content first">
@@ -853,7 +1024,14 @@ export default function PayTicketInLocation() {
         </div>
         {hasCredit && (
           <>
-          <button className="primary-button" onClick={() => {router.replace(`/manualValidation?locationId=${locationId}` )}}>Validacion manual de ticket</button>
+            <button
+              className="primary-button"
+              onClick={() => {
+                router.replace(`/manualValidation?locationId=${locationId}`);
+              }}
+            >
+              Validacion manual de ticket
+            </button>
             <div className="header-container">
               <div className="options-header">
                 <h1 className="main-header">Pago De ticket</h1>
@@ -877,30 +1055,17 @@ export default function PayTicketInLocation() {
             </div>
             {/* {renderButtonToOpenBarrier()} */}
             {renderButtonToPrintTicketReceive()}
-            <label>
-              <b>Ingrese el código qr del ticket</b>
-            </label>
-            <div className="qr-input-container">
-              <input
-                type="text"
-                placeholder="Ticket ID"
-                className="filter-input"
-                value={ticketId}
-                onChange={(e) => {
-                  const formattedValue = e.target.value.replace(/'/g, "-");
-                  setTicketId(formattedValue);
-                }}
-              />
-              <div
-                className="trash-icon-container"
-                onClick={() => setTicketId("")}
-              >
-                <TrashIcon />
-              </div>
-              <button onClick={getTicketInfo} className="primary-button">
-                Buscar
-              </button>
-            </div>
+            <Toggle
+              checked={manualValidation}
+              onChange={() => {
+                setManualValidation((prev) => !prev);
+              }}
+              leftLabel="Validacion con camara"
+              rightLabel="Validacion Manual"
+            />
+
+            {manualPaymentContainer()}
+            {autoValidationContent()}
             <div className="">
               {payTicketInfoContainer()}
               {payTicketActions()}

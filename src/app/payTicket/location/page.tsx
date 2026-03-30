@@ -850,7 +850,10 @@ export default function PayTicketInLocation() {
         ></div>
         <>
           <div className="header-container">
-            <button className="primary-button" onClick={() => {router.replace(`/manualValidation?locationId=${locationId}` )}}>Validacion manual de ticket</button>
+            <div style={{display:"flex", flexDirection:"column", gap:10 }}>
+              <button className="primary-button secondary" onClick={() => {router.replace(`/cancelTicket?locationId=${locationId}` )}}>Cancelar Ticket</button>
+              <button className="primary-button" onClick={() => {router.replace(`/manualValidation?locationId=${locationId}` )}}>Validacion manual de ticket</button>
+            </div>
             <div className="options-header">
               <h1 className="main-header">Pago De ticket</h1>
               <a onClick={() => router.replace("/payTicket")}>Regresar</a>

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { manualVehicleValidation } from "@/api/ticketsApi";
+import { cancelTicket, manualVehicleValidation } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 import Toggle from "@/components/Toggle/ToggleComp";
 import { useAuth } from "@/context/AuthContext";
@@ -31,6 +31,7 @@ export default function Page() {
   const [result, setResult] = useState<string | null>(null);
   const [scanning, setIsScanning] = useState(false);
   const [shouldDisplayQrReader, setshouldDisplayQrReader] = useState(false);
+  const [ comment, setComment] = useState<string>("");
 
   // end of state declaration
 
@@ -107,12 +108,16 @@ export default function Page() {
   };
 
   async function manualValidationReq() {
+
+    if (!result || result == "" || comment === "") return;
+
     try {
       setLoadingGlobal(true);
-      const req = (await manualVehicleValidation(
+      const req = (await cancelTicket(
         token as string,
         LocationId as string,
         result as string,
+        comment
       )) as Response;
       if (scanning) {
         setIsScanning(false);
@@ -126,7 +131,8 @@ export default function Page() {
             "Error haciendo validacion manual, comuniquese con administracion",
         );
       setResult("");
-      handleToast("success", "Validacion Manual correcta");
+      setComment("")
+      handleToast("success", "Cancelacion de ticket correcta");
     } catch (error: any) {
       handleToast(
         "error",
@@ -150,6 +156,8 @@ export default function Page() {
   useEffect(() => {
     if (autoValidation) {
       navigator.mediaDevices.getUserMedia({ video: true });
+    } else {
+      stopScanner(true);
     }
   }, [autoValidation]);
 
@@ -180,8 +188,8 @@ export default function Page() {
   const autoValidationElement = () => {
     if (!scanning) {
       return (
-        <button className="primary-button" onClick={startScanner}>
-          Validar Ticket con camara
+        <button className="primary-button" onClick={startScanner} disabled = {comment === ""}>
+          Activar camara y cancelar
         </button>
       );
     }
@@ -210,6 +218,7 @@ export default function Page() {
           <p>Buscar ticket por Id</p>
           <div className="input-row">
             <input
+              disabled={comment == ""}
               type="text"
               className="main-input"
               placeholder="ticketId"
@@ -231,9 +240,9 @@ export default function Page() {
               <button
                 onClick={() => manualValidationReq()}
                 className="primary-button"
-                disabled={isLoadingGlobal || result === ""}
+                disabled={isLoadingGlobal || !result || result == "" || comment === ""}
               >
-                Buscar Ticket
+                cancelar Ticket
               </button>
             </div>
           </div>
@@ -244,10 +253,9 @@ export default function Page() {
 
   return (
     <div className="main-content">
-      <h1 className="main-header">Validacion manual de vehiculo</h1>
+      <h1 className="main-header">Cancelacion de ticket</h1>
       <b>
-        Coloque o escanee el ID del ticket para marcar como ingresado al
-        vehiculo{" "}
+        Coloque o escanee el ID del ticket para marcarlo como cancelado{" "}
       </b>
 
       <Toggle
@@ -258,7 +266,10 @@ export default function Page() {
         leftLabel="Validacion Manual"
         rightLabel="Validacion Automatica"
       />
-
+      <div className="input-container">
+        <label htmlFor="comment-input"> <b>Comentario de cancelacion</b></label>
+        <input className="main-input" type="text" placeholder="Coloque justificacion de la cancelacion" value={comment} onChange={(e) => setComment(e.target.value) } disabled= {isLoadingGlobal}/>
+      </div>
       {autoValidationContent()}
       {ManualValidation()}
     </div>
