@@ -821,7 +821,7 @@ export default function Page() {
                   type="text"
                   className="main-input white"
                   disabled
-                  value={creditInfo?.createdAt}
+                  value={creditInfo?.createdAt ? transformDate(creditInfo.createdAt) : ""}
                 />
               </div>
             </div>
