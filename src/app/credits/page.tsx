@@ -13,7 +13,7 @@ import {
   getOperatorsReqPaginated,
 } from "@/api/credits";
 import { Response } from "@/api/usersApi";
-import { transformToCurrency } from "@/assets/utils";
+import { transformDate, transformToCurrency } from "@/assets/utils";
 import { UserTemplate } from "@/types/user";
 import "./creditsStyle.scss";
 import { PDFViewer } from "@react-pdf/renderer";
@@ -84,7 +84,7 @@ export default function Page() {
   //utils
   const { userType, token, handleToast, setLoadingGlobal } = useAuth();
   const router = useRouter();
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA");
   const searchParams = useSearchParams();
   const handleRouter = (id: string) => {
     return router.push(`/credits?requestId=${id}`);
@@ -1086,7 +1086,7 @@ const printActionButtons = () => {
                       }}
                     >
                       <td>{(index = index + 1)}</td>
-                      <td className="">{item.createdAt}</td>
+                      <td className="">{transformDate(item.createdAt)}</td>
                       <td className="">
                         {transformToCurrency(
                           item.initial_amount as number,
