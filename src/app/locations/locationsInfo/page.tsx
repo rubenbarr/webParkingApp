@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { Fragment, lazy, useEffect, useState } from "react";
+import React, { Fragment, lazy, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 
@@ -15,7 +15,7 @@ import {
   fetchLocationInfo,
   fetchTickets,
   ITicketsParams,
-  fetchBarrierHistory
+  fetchBarrierHistory,
 } from "@/store/slices/locationInfoSlice";
 
 import { transformToCurrency } from "@/assets/utils";
@@ -25,7 +25,8 @@ import { getTicketInfoById } from "@/api/ticketsApi";
 import { Response } from "@/api/usersApi";
 
 import "./locationInfoStyle.scss";
-
+import Toggle from "@/components/Toggle/ToggleComp";
+import { Html5Qrcode } from "html5-qrcode";
 
 export default function Page() {
   const { isLoadingGlobal, setLoadingGlobal, token, handleToast } = useAuth();
@@ -41,8 +42,8 @@ export default function Page() {
   );
 
   const { historyList, canLoadMoreBarrierList } = useSelector(
-    (state:RootState) => state.barrierListHistoryReducer
-  )
+    (state: RootState) => state.barrierListHistoryReducer,
+  );
 
   const { tickets, loading, error, errorMessage, canLoadMore } = useSelector(
     (state: RootState) => state.ticketsInfo,
@@ -52,7 +53,9 @@ export default function Page() {
     (state: RootState) => state.financialDataReducer,
   );
 
-  const { barrierSummary } = useSelector((state:RootState) => state.barrierHistoryReducer);
+  const { barrierSummary } = useSelector(
+    (state: RootState) => state.barrierHistoryReducer,
+  );
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -74,7 +77,17 @@ export default function Page() {
   const [shouldDisplayBarrierTable, setShouldDisplayBarrierTable] =
     useState(false);
   const [ticketInfo, setTicketInfo] = useState<ITicket | null>(null);
-  const [ticketId, setTicketId] = useState("")
+
+  const [ticketId, setTicketId] = useState("");
+  const [errorCam, setErrorCam] = useState<string | null>(null);
+
+  const [result, setResult] = useState<string | null>(null);
+  const [scanning, setIsScanning] = useState(false);
+  const [shouldDisplayQrReader, setshouldDisplayQrReader] = useState(false);
+  const [autoFind, setAutoFind] = useState<boolean>(false);
+
+  const qrRef = useRef<HTMLDivElement>(null);
+  const qrInstance = useRef<Html5Qrcode>(null);
 
   //  end of declaration state
 
@@ -142,26 +155,36 @@ export default function Page() {
     }
   }
 
-  async function  getTicketByIdReq(ticketId:string) {
+  async function getTicketByIdReq(ticketId: string) {
     try {
       setLoadingGlobal(true);
-      setTicketInfo(null)
+      setTicketInfo(null);
       if (!token || !locationId) return;
 
-      const req = await getTicketInfoById(token as string, ticketId, locationId as string, true) as Response;
+      const req = (await getTicketInfoById(
+        token as string,
+        ticketId,
+        locationId as string,
+        true,
+      )) as Response;
       if (!req.state)
-        return handleToast("error", req?.message || req?.error || "Error obteniendo informacion de ticket, comuniquese con administracion")
-      
-      setTicketInfo(req.data as ITicket);
-            
+        return handleToast(
+          "error",
+          req?.message ||
+            req?.error ||
+            "Error obteniendo informacion de ticket, comuniquese con administracion",
+        );
 
+      setTicketInfo(req.data as ITicket);
     } catch (error) {
-      handleToast("error", "Error obteniendo informacion")
-      setTicketInfo(null)
+      handleToast("error", "Error obteniendo informacion");
+      setTicketInfo(null);
     } finally {
       setLoadingGlobal(false);
+      if (scanning) {
+        stopScanner(true);
+      }
     }
-    
   }
 
   useEffect(() => {
@@ -206,6 +229,19 @@ export default function Page() {
     } else router.replace("/locations");
   }, []);
 
+    useEffect(() => {
+      if (!result) return;
+  
+      const delayDebounce = setTimeout(() => {
+        if (result.length >= 32) {
+          setTicketId(result);
+          getTicketByIdReq(result)
+        }
+      }, 300); // wait 300ms after typing stops
+  
+      return () => clearTimeout(delayDebounce);
+    }, [result]);
+
   function getTickets() {
     if (!token || !locationId) return;
     dispatchTickets({
@@ -231,14 +267,14 @@ export default function Page() {
 
   function getBarrierSumReq() {
     if (!token || !locationId) return;
-      dispatchBarrierSummary({
-        token,
-        locationId,
-        page: ticketsPage,
-        limit: ticketsLimit,
-        fromDate,
-        toDate,
-      });
+    dispatchBarrierSummary({
+      token,
+      locationId,
+      page: ticketsPage,
+      limit: ticketsLimit,
+      fromDate,
+      toDate,
+    });
   }
   function getFinancialData() {
     if (!token || !locationId) return;
@@ -251,6 +287,83 @@ export default function Page() {
       toDate,
     });
   }
+
+  const startScanner = async () => {
+    setResult(null);
+    setErrorCam(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setErrorCam("Error");
+        handleToast(
+          "error",
+          "Es posible que tu navegador no soporte tu camara, cambia de navegador a google Chrome",
+        );
+        return;
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
+      if (videoDevices.length === 0) {
+        setErrorCam("Error");
+        handleToast(
+          "error",
+          "No se encontro camara para navegar, no es posible realizar validacion",
+        );
+        return;
+      }
+
+      const isMobile = /Android|iPhone|IPad|Ipod/i.test(navigator.userAgent);
+
+      let cameraId = videoDevices[0].deviceId;
+
+      if (isMobile) {
+        const backCamera = videoDevices.find(
+          (d) =>
+            d.label.toLowerCase().includes("back") ||
+            d.label.toLowerCase().includes("rear") ||
+            d.label.toLowerCase().includes("environment"),
+        );
+        if (backCamera) cameraId = backCamera.deviceId;
+      }
+
+      qrInstance.current = new Html5Qrcode("qr-reader");
+      setIsScanning(true);
+      await qrInstance.current.start(
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        async (decodedText) => {
+          await stopScanner(false);
+          setResult(decodedText);
+        },
+        (errorMessage) => {},
+      );
+      setshouldDisplayQrReader(true);
+    } catch (error) {
+      setErrorCam("Error");
+      handleToast(
+        "error",
+        "Error activando tu camara, comunicate con administracion" + `${error}`,
+      );
+      setshouldDisplayQrReader(false);
+    }
+  };
+
+  const stopScanner = async (eraseResult: boolean) => {
+    try {
+      if (eraseResult) setResult(null);
+      if (scanning && qrInstance.current) {
+        await qrInstance.current.stop();
+        setIsScanning(false);
+        setErrorCam(null);
+      }
+    } catch (error) {
+      handleToast("error", "ups, ubo error refresque la pagina");
+    }
+  };
 
   const LocationGeneralData = () => {
     return (
@@ -290,94 +403,167 @@ export default function Page() {
     );
   };
 
-  const ticketInformationcontainer = () => {
+  const autoValidationElement = () => {
+    if (!scanning) {
+      return (
+        <button className="primary-button" onClick={() => {startScanner(); setTicketId(""); setTicketInfo(null)}}>
+          Activar camara para buscar
+        </button>
+      );
+    }
     return (
-      <div className="entity-content">
-        <b>Busqueda de ticket</b>
+      <button className="primary-button" onClick={() => stopScanner(true)}>
+        Cerrar camara
+      </button>
+    );
+  };
 
-        <p>Buscar ticket por Id</p>
+  const qrReader = () => {
+    return (
+      !error && (
+        <div id={"qr-reader"} ref={qrRef} style={{ width: "300px" }}></div>
+      )
+    );
+  };
+
+  const autoValidationContent = () => {
+    return (
+      autoFind && (
+        <>
+          {autoValidationElement()}
+          {ticketId && <div className="">
+            <p>Ticket Id: </p>
+            <b>{ticketId !== "" && ticketId}</b>
+          </div>}
+          {qrReader()}
+        </>
+      )
+    );
+  };
+
+  const manualFindContent = () => {
+    return (
+      !autoFind && (
         <div className="input-row">
-          <input type="text" className="main-input" placeholder="ticketId" value={ticketId}  onChange={(e) => {setTicketId(e.target.value);}}/>
+          <b>Busqueda de ticket</b>
+          <p>Buscar ticket por Id</p>
+
+          <input
+            type="text"
+            className="main-input"
+            placeholder="ticketId"
+            value={ticketId}
+            onChange={(e) => {
+              const formattedValue = e.target.value.replace(/'/g, "-");
+              setTicketId(formattedValue);
+            }}
+          />
           <div className="input-buttons">
-            <button className="trash-icon-container" onClick={() => {setTicketId("")}}>
+            <button
+              className="trash-icon-container"
+              onClick={() => {
+                setTicketId("");
+              }}
+            >
               <TrashIcon />
             </button>
-            <button onClick={() => getTicketByIdReq(ticketId)} className="primary-button" disabled={isLoadingGlobal || ticketId === ""}>
+            <button
+              onClick={() => getTicketByIdReq(ticketId)}
+              className="primary-button"
+              disabled={isLoadingGlobal || ticketId === ""}
+            >
               Buscar Ticket
             </button>
           </div>
         </div>
-      { ticketInfo && <div className="main-entity-content">
-          <label>
-            <b>{"Fecha de entrada: "}</b>
-            {transformDate(ticketInfo?.fechaEntrada)}
-          </label>
-          <label>
-            <b>{"Estado: "}</b>
-            {ticketInfo?.estado}
-          </label>
-          {/* <label>
+      )
+    );
+  };
+
+  const ticketInformationcontainer = () => {
+    return (
+      <div className="entity-content">
+        <Toggle
+          checked={autoFind}
+          onChange={() => setAutoFind(!autoFind)}
+          leftLabel="Buscar Manualmente"
+          rightLabel="Buscar con camara"
+        />
+        {manualFindContent()}
+        {autoValidationContent()}
+        {ticketInfo && (
+          <div className="main-entity-content">
+            <label>
+              <b>{"Fecha de entrada: "}</b>
+              {transformDate(ticketInfo?.fechaEntrada)}
+            </label>
+            <label>
+              <b>{"Estado: "}</b>
+              {ticketInfo?.estado}
+            </label>
+            {/* <label>
             <b>{"total de minutos: "}</b>
             {ticketInfo?.minutos_dentro}
           </label> */}
-          <label>
-            <b>{"total de horas dentro: "}</b>
-            {ticketInfo?.total_time}
-          </label>
-          <label>
-            <b>{"coche dentro: "}</b>
-            {ticketInfo?.cocheDentro ? "Si" : "No"}
-          </label>
-          <label>
-            <b>{"Salio: "}</b>
-            {ticketInfo?.cerrado ? "Si" : "No"}
-          </label>
-{  ticketInfo?.cerrado  && 
-            ( 
-            <>
-              <label>
-                <b>{"Fecha Salida: "}</b>
+            <label>
+              <b>{"total de horas dentro: "}</b>
+              {ticketInfo?.total_time}
+            </label>
+            <label>
+              <b>{"coche dentro: "}</b>
+              {ticketInfo?.cocheDentro ? "Si" : "No"}
+            </label>
+            <label>
+              <b>{"Salio: "}</b>
+              {ticketInfo?.cerrado ? "Si" : "No"}
+            </label>
+            {ticketInfo?.cerrado && (
+              <>
+                <label>
+                  <b>{"Fecha Salida: "}</b>
                   {transformDate(ticketInfo?.fechaSalida)}
-              </label>
-              <label>
-                <b>{"Tiempo dentro en min: "}</b>
-                  {ticketInfo.global_time_in}
-              </label>
-            </>
-            )
-          }
-            {   ticketInfo?.estado === "pagado" &&       <label>
-            <b>{"Pagado por: "}</b>
-            {ticketInfo?.paidBy}
-          </label>}
-          {ticketInfo?.estado === "pagado" && (
-            <div className="ticket-payment-Info">
-              <label htmlFor="">Informacion de ultimo pago</label>
-              <p className="info-content">
-                <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
-                <label htmlFor="">
-                  {ticketInfo?.tiempo_despues_de_utimo_pago}
                 </label>
-              </p>
-              <b>Historial de pagos de ticket</b>
-              {ticketInfo?.dataPayment.map((item, index) => (
-                <div key={item.id} className="ticket-info-content">
-                  <p className="info-content">
-                    <b>{"No. de pago: "}</b> <label> {index + 1}</label>
-                  </p>
-                  <p className="info-content">
-                    <b>{"Fecha de pago: "}</b>{" "}
-                    <label> {transformDate(item?.fechaPago)}</label>
-                  </p>
-                  <p className="info-content">
-                    <b>{"Total pagado: "}</b>{" "}
-                    <label> {transformToCurrency(item?.amount || 0)}</label>
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>}
+                <label>
+                  <b>{"Tiempo dentro en min: "}</b>
+                  {ticketInfo.global_time_in}
+                </label>
+              </>
+            )}
+            {ticketInfo?.estado === "pagado" && (
+              <label>
+                <b>{"Pagado por: "}</b>
+                {ticketInfo?.paidBy}
+              </label>
+            )}
+            {ticketInfo?.estado === "pagado" && (
+              <div className="ticket-payment-Info">
+                <label htmlFor="">Informacion de ultimo pago</label>
+                <p className="info-content">
+                  <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
+                  <label htmlFor="">
+                    {ticketInfo?.tiempo_despues_de_utimo_pago}
+                  </label>
+                </p>
+                <b>Historial de pagos de ticket</b>
+                {ticketInfo?.dataPayment.map((item, index) => (
+                  <div key={item.id} className="ticket-info-content">
+                    <p className="info-content">
+                      <b>{"No. de pago: "}</b> <label> {index + 1}</label>
+                    </p>
+                    <p className="info-content">
+                      <b>{"Fecha de pago: "}</b>{" "}
+                      <label> {transformDate(item?.fechaPago)}</label>
+                    </p>
+                    <p className="info-content">
+                      <b>{"Total pagado: "}</b>{" "}
+                      <label> {transformToCurrency(item?.amount || 0)}</label>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -489,41 +675,43 @@ export default function Page() {
         </div>
         {shouldDisplayBarrierTable && (
           <Fragment>
-
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th className="">Item</th>
-                  <th className="">Puerta</th>
-                  <th className="">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyList.length !== 0 ? (
-                  historyList.map((item, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{item.gateLabel}</td>
-                      <td>{transformDate(item.createdAt)}</td>
-                    </tr>
-                  ))
-                ) : (
+            <div className="table-container">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={3}>Sin datos</td>
+                    <th className="">Item</th>
+                    <th className="">Puerta</th>
+                    <th className="">Fecha</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        { canLoadMoreBarrierList && (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <button className="primary-button" onClick={loadMoreBarrierList}>
-              Cargar Mas
-            </button>
-          </div>
-        ) }
-        </Fragment>
+                </thead>
+                <tbody>
+                  {historyList.length !== 0 ? (
+                    historyList.map((item, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>{item.gateLabel}</td>
+                        <td>{transformDate(item.createdAt)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3}>Sin datos</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {canLoadMoreBarrierList && (
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  className="primary-button"
+                  onClick={loadMoreBarrierList}
+                >
+                  Cargar Mas
+                </button>
+              </div>
+            )}
+          </Fragment>
         )}
       </div>
     );
@@ -618,16 +806,15 @@ export default function Page() {
             </div>
             <div className="row">
               <b>Historial de boton de barrera de salida</b>
-                <div className="content-row">
+              <div className="content-row">
                 <label>
                   <b>{"Total de conteo: "}</b> {barrierSummary?.total}
                 </label>
-
               </div>
             </div>
           </div>
         </div>
-          {barrierHistorytable()}
+        {barrierHistorytable()}
       </div>
     );
   };
@@ -658,7 +845,13 @@ export default function Page() {
                 </tr>
               ) : (
                 tickets?.map((item, index) => (
-                  <tr key={index} onClick={() => { setTicketId(item.ticketId); getTicketByIdReq(item.ticketId)}}>
+                  <tr
+                    key={index}
+                    onClick={() => {
+                      setTicketId(item.ticketId);
+                      getTicketByIdReq(item.ticketId);
+                    }}
+                  >
                     <td>{index + 1}</td>
                     <td>
                       {item.fechaEntrada && transformDate(item.fechaEntrada)}
