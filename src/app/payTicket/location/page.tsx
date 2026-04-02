@@ -361,7 +361,13 @@ export default function PayTicketInLocation() {
                     )
                   : 0}
               </label>
-              <label>
+              <label
+                className={cn([
+                  ticketInfo?.total_a_pagar &&
+                    paymentState.totalPayed - ticketInfo?.total_a_pagar > 0 &&
+                    "alarm informative",
+                ])}
+              >
                 <b>Cambio: </b>
                 {ticketInfo?.total_a_pagar &&
                 paymentState.totalPayed > 0 &&
@@ -653,20 +659,23 @@ export default function PayTicketInLocation() {
     if (!ticketInfo?.cocheDentro)
       return (
         <>
-          <label htmlFor="">{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida && "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
+          <label
+            className="alarm yellow"
+            htmlFor=""
+          >{`Este ticket ya ha salido, ${ticketInfo?.fechaSalida && "fecha/salida: " + transformDate(ticketInfo?.fechaSalida)}`}</label>
         </>
       );
     if (ticketInfo?.tolerancia && ticketInfo.estado === "pendiente") {
       return (
-        <label>{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
+        <label className="alarm yellow">{`Ticket con tiempo de tolerancia para salir, tiempo:  ${ticketInfo?.tiempo_restante_tolerancia}`}</label>
       );
     }
     if (ticketInfo?.repago) {
-      return <label>Ticket requiere nuevo pago</label>;
+      return <label className="alarm yellow">Ticket requiere nuevo pago</label>;
     }
     if (ticketInfo?.estado == "pagado" && !ticketInfo.repago) {
       return (
-        <label>{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_para_salir} min`}</label>
+        <label className="alarm yellow">{`Ticket pagado  tiempo para salir:  ${ticketInfo?.tiempo_para_salir} min`}</label>
       );
     }
   };
@@ -719,7 +728,9 @@ export default function PayTicketInLocation() {
                 </div>
                 {ticketInfo?.estado === "pagado" && (
                   <div className="ticket-payment-Info">
-                    <label htmlFor="">Informacion de ultimo pago</label>
+                    <label className="label-informative" htmlFor="">
+                      Informacion de ultimo pago
+                    </label>
                     <p className="info-content">
                       <b>{"Tiempo transcurrido desde ultimo pago: "}</b>
                       <label htmlFor="">
@@ -850,9 +861,23 @@ export default function PayTicketInLocation() {
         ></div>
         <>
           <div className="header-container">
-            <div style={{display:"flex", flexDirection:"column", gap:10 }}>
-              <button className="primary-button secondary" onClick={() => {router.replace(`/cancelTicket?locationId=${locationId}` )}}>Cancelar Ticket</button>
-              <button className="primary-button" onClick={() => {router.replace(`/manualValidation?locationId=${locationId}` )}}>Validacion manual de ticket</button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                className="primary-button secondary"
+                onClick={() => {
+                  router.replace(`/cancelTicket?locationId=${locationId}`);
+                }}
+              >
+                Cancelar Ticket
+              </button>
+              <button
+                className="primary-button"
+                onClick={() => {
+                  router.replace(`/manualValidation?locationId=${locationId}`);
+                }}
+              >
+                Validacion manual de ticket
+              </button>
             </div>
             <div className="options-header">
               <h1 className="main-header">Pago De ticket</h1>
