@@ -73,8 +73,8 @@ export const TicketPDF = (props: TicketProps) => {
             <Text>{ticket.dataPayment.length}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Total de tiempo: </Text>
-            <Text>{ticket.global_time_in}</Text>
+            <Text style={styles.label}>Horas cobradas: </Text>
+            <Text>{ticket.total_time}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Total pagado: </Text>

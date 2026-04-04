@@ -940,7 +940,7 @@ export default function PayTicketInLocation() {
   const PDFViewerComponent = () => {
     return (
       displayPdfViewe && (
-        <PDFViewer style={{ width: "100%", height: "40vh" }}>
+        <PDFViewer  key={JSON.stringify(ticketInfo)} style={{ width: "100%", height: "40vh" }}>
           <TicketPDF
             ticket={ticketInfo as ITicket}
             locationTitle={locationInfo?.title as string}

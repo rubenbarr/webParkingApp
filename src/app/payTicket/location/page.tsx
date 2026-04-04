@@ -3,7 +3,7 @@
 
 import "./payticketlocation.scss";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getLocationById } from "@/api/locationApi";
@@ -835,7 +835,7 @@ export default function PayTicketInLocation() {
   const PDFViewerComponent = () => {
     return (
       displayPdfViewe && (
-        <PDFViewer style={{ width: "100%", height: "40vh" }}>
+        <PDFViewer key={JSON.stringify(ticketInfo)} style={{ width: "100%", height: "40vh" }}>
           <TicketPDF
             ticket={ticketInfo as ITicket}
             locationTitle={locationInfo?.title as string}
@@ -844,7 +844,8 @@ export default function PayTicketInLocation() {
         </PDFViewer>
       )
     );
-  };
+  }
+
   return (
     <>
       <div className="main-content first">
