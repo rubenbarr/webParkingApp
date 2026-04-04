@@ -95,7 +95,10 @@ export default function PayTicketInLocation() {
   const [displayPdfViewe, setDisplayPdfViewer] = useState(false);
   const [shouldDisplayPrintButton, setShouldDisplayPrintButton] =
     useState(false);
+
+  const [activateBankPayment, setActivateBankPayment] = useState(false);
   const [manualValidation, setManualValidation] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [shouldDisplayQrReader, setshouldDisplayQrReader] = useState(false);
   const [qrResult, setQrResult] = useState("");
@@ -411,6 +414,28 @@ export default function PayTicketInLocation() {
         </button>
       );
     }
+  };
+
+  const bankPaymentActionContent = () => {
+    return (
+      shouldDisplayTicketInfo &&
+      canPayTicket &&
+      activateBankPayment && (
+      <div>
+        <div>
+          <label htmlFor="select-type">Tipo</label>
+          <select name="select-type" id="select-type" value={""}>
+            <option value="" >Selecciona tipo de pago</option>
+            <option>Terminal</option>
+            <option>Transferencia</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="amount">Cantidad</label>
+          <input type="text" placeholder="cantidad" id="amount" />
+        </div>
+      </div>
+    ));
   };
 
   const payTicketActions = () => {
@@ -940,7 +965,10 @@ export default function PayTicketInLocation() {
   const PDFViewerComponent = () => {
     return (
       displayPdfViewe && (
-        <PDFViewer  key={JSON.stringify(ticketInfo)} style={{ width: "100%", height: "40vh" }}>
+        <PDFViewer
+          key={JSON.stringify(ticketInfo)}
+          style={{ width: "100%", height: "40vh" }}
+        >
           <TicketPDF
             ticket={ticketInfo as ITicket}
             locationTitle={locationInfo?.title as string}
@@ -1082,6 +1110,15 @@ export default function PayTicketInLocation() {
             {autoValidationContent()}
             <div className="">
               {payTicketInfoContainer()}
+              {shouldDisplayTicketInfo && canPayTicket && (
+                <Toggle
+                  checked={activateBankPayment}
+                  leftLabel="Solo Efectivo"
+                  rightLabel="Pago Electronico (banco/Transferencia)"
+                  onChange={() => setActivateBankPayment((prev) => !prev)}
+                />
+              )}
+              {bankPaymentActionContent()}
               {payTicketActions()}
             </div>
           </>
